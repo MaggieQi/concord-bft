@@ -118,7 +118,7 @@ def setup_remote_env(client, host, do_install, network):
         exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git")
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
 
-    update_code = False
+    update_code = True
     if update_code:
         exec_remote_cmd(client, "rm -rf %s" % (repo_name))
         print "Cloing code..."
