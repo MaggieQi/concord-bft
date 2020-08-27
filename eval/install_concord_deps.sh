@@ -11,6 +11,7 @@ cd boost_1_64_0
 ./b2
 sudo ./b2 install
 cd ..
+rm -rf boost_1_64_0
 rm -rf boost_1_64_0.tar.gz
 
 #relic
@@ -19,16 +20,17 @@ rm -rf relic
 git clone https://github.com/relic-toolkit/relic
 cd relic/
 git checkout b984e901ba78c83ea4093ea96addd13628c8c2d0
-mkdir -p build/
+mkdir build/
 cd build/
 cmake -DCMAKE_BUILD_TYPE=RelWithDebInfo -DALLOC=AUTO -DWSIZE=64 -DRAND=UDEV -DSHLIB=ON -DSTLIB=ON -DSTBIN=OFF -DTIMER=HREAL -DCHECK=on -DVERBS=on -DARITH=x64-asm-254 -DFP_PRIME=254 -DFP_METHD="INTEG;INTEG;INTEG;MONTY;LOWER;SLIDE" -DCOMP="-O3 -funroll-loops -fomit-frame-pointer -finline-small-functions -march=native -mtune=native" -DFP_PMERS=off -DFP_QNRES=on -DFPX_METHD="INTEG;INTEG;LAZYR" -DPP_METHD="LAZYR;OATEP" ..
 make -j 16
 sudo make install
+cd ../../
 rm -rf relic
-cd ..
 
 #cryptopp
 echo "installing cryptopp"
+rm -rf cryptopp
 git clone https://github.com/weidai11/cryptopp.git
 cd cryptopp/
 git checkout CRYPTOPP_5_6_5;
@@ -37,8 +39,7 @@ cd build/
 cmake ..
 make -j 16
 sudo make install
-cd ..
+cd ../../
 rm -rf cryptopp
-cd ..
 
 sudo ldconfig
