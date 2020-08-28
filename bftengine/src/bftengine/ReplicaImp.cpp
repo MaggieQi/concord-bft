@@ -803,7 +803,7 @@ namespace bftEngine
 
         void ReplicaImp::onMessage(CollectStablePointMsg* msg)
 		{
-			LOG_INFO_F(GL, "CQDEBUG:Node %d received CollectStablePointMsg from node %d numOfReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 "", (int)myReplicaId, (int)msg->senderId(),
+			LOG_DEBUG_F(GL, "CQDEBUG:Node %d received CollectStablePointMsg from node %d numOfReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 "", (int)myReplicaId, (int)msg->senderId(),
 				(int)msg->numberOfRequests(), msg->prevStablePoint(), msg->nextStablePoint());
 			CollectStablePointItem* ptr = msg->requests();
 			for (uint16_t i = 0; i < msg->numberOfRequests(); i++) {
@@ -834,7 +834,7 @@ namespace bftEngine
 
 		void ReplicaImp::onMessage(LocalCommitSetMsg* msg)
 		{
-			LOG_INFO_F(GL, "CQDEBUG:Node %d received LocalCommitSetMsg from node %d numOfReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 "", (int)myReplicaId, (int)msg->senderId(),
+			LOG_DEBUG_F(GL, "CQDEBUG:Node %d received LocalCommitSetMsg from node %d numOfReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 "", (int)myReplicaId, (int)msg->senderId(),
 				(int)msg->numberOfRequests(), msg->prevStablePoint(), msg->nextStablePoint());
 
 			if (localCommitMsgs.find(msg->senderId()) != localCommitMsgs.end()) {
@@ -878,7 +878,7 @@ namespace bftEngine
 			//LOG_INFO_F(GL, "CQDEBUG:Node %d received ClientGetTimeStampMsg from node %d hash=%d (size=%d)",
 			//	(int)myReplicaId, (int)msg->senderId(), (msg->digestOfRequests()).hash(), (int)msg->size());
 			ClientSignedTimeStampMsg* pp = timeManager->GetSignedTimeStamp(myReplicaId, msg->digestOfRequests());
-                        //ClientSignedTimeStampMsg* pp = timeManager->GetSignedTimeStamp(myReplicaId, msg->digestOfRequests(), sigManager);
+            //ClientSignedTimeStampMsg* pp = timeManager->GetSignedTimeStamp(myReplicaId, msg->digestOfRequests(), sigManager);
 			send(pp, msg->senderId());
 			delete pp;
 			delete msg;

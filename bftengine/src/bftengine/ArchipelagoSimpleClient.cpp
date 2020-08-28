@@ -143,7 +143,7 @@ namespace bftEngine
 
         void ArchipelagoSimpleClientImp::onMessage(ClientReplyMsg* msg)
         {
-             LOG_INFO_F(GL, "Client %d received ClientReplyMsg with seqNum=%"
+             LOG_DEBUG_F(GL, "Client %d received ClientReplyMsg with seqNum=%"
             PRIu64
             " sender=%d  size=%d  primaryId=%d hash=%" PRIu64 "",
                 _clientId, msg->reqSeqNum(), msg->senderId(), msg->size(), (int)msg->currentPrimaryId(), msg->debugHash());
@@ -169,7 +169,7 @@ namespace bftEngine
 
         void ArchipelagoSimpleClientImp::onMessage(ClientSignedTimeStampMsg* msg)
         {
-            LOG_INFO_F(GL, "Client %d received SignedTimeStamp with sender=%d size=%d time=%" PRIu64 "",
+            LOG_DEBUG_F(GL, "Client %d received SignedTimeStamp with sender=%d size=%d time=%" PRIu64 "",
                 _clientId, msg->senderId(), (int)msg->size(), msg->timeStamp());
 
             if (timestampsFromReplicas.count(msg->senderId()) > 0) {
@@ -185,7 +185,7 @@ namespace bftEngine
                 t.computeMeanTimeStamp();
                 pendingRequest->setCombinedTimestamp(&t);
                 timestampCollected = true;
-                LOG_INFO_F(GL, "Request(reqLength=%d size=%d totalSize=%d timestampSize=%d timeStamp=%" PRIu64 ")", (int)pendingRequest->requestLength(), 
+                LOG_DEBUG_F(GL, "Request(reqLength=%d size=%d totalSize=%d timestampSize=%d timeStamp=%" PRIu64 ")", (int)pendingRequest->requestLength(), 
                   (int)pendingRequest->size(), (int)pendingRequest->totalSize(), (int)t.endLocationOfLastVerifiedTimeStamp(), t.timeStamp());
             }
         }
