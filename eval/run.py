@@ -11,6 +11,7 @@ import sys
 from optparse import OptionParser
 from time import sleep
 import threading
+from os.path import expanduser
 
 print_cmd_output = 1
 
@@ -18,8 +19,7 @@ def get_username():
     return pwd.getpwuid(os.getuid())[ 0 ]
 
 def get_homedir():
-    #return '/home/' + get_username() + '/'
-    return '/root/'
+    return expanduser("~")
 
 def get_expdir():
     return "build/bftengine/tests/simpleTest/"
