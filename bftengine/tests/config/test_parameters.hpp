@@ -24,7 +24,8 @@ struct ClientParams {
   std::string   configFileName;
 
   std::string protocol = "concord";
-
+  uint16_t maxBatchSize = 1;
+  
   uint16_t get_numOfReplicas() {
     return (uint16_t)(3 * numOfFaulty + 2 * numOfSlow + 1);
   }

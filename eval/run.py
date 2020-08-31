@@ -152,12 +152,11 @@ def run_experiment_server(hostid, client, config_object):
 
     base_dir = "concord-bft"
     replica_id = hostid
-    dynamicCollector = 1
-    maxBatchSize = 1
+    maxBatchSize = int(config_object["replica_batchsize"])
     if config_object["system"] == "concord":
         commitDuration = 0
     else:
-        commitDuration = 100
+        commitDuration = int(config_object["commit_duration"])
 
     #-vc -vct <viewChangeTimeout> -stopseconds <stopSeconds>
     cmd = '''cd %s;
@@ -165,8 +164,8 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_P
 cd %s;
 rm core;
 ulimit -n 4096;ulimit -c unlimited;
-./server -id %d -c %d -r %d -cf %s -a %s -dc %d -mb %d -commit %d  &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", 
-    config_object["system"], dynamicCollector, maxBatchSize, commitDuration, replica_id)
+./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d  &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", 
+    config_object["system"], maxBatchSize, commitDuration, replica_id)
     print(cmd)
     exec_remote_cmd(client, cmd)
 
@@ -175,15 +174,16 @@ def run_experiment_client(hostid, client, config_object):
 
     base_dir = "concord-bft"
     client_id = hostid
-    numberOperations = 2800
+    numberOperations = int(config_object["number_operations"])
+    maxBatchSize = int(config_object["client_batchsize"])
 
     cmd = '''cd %s;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/local/include;
 cd %s;
 rm core;
 ulimit -c unlimited;
-./client -id %d -cl %d -r %d -cf %s -a %s -f %d -i %d -srft 2 -srpt 2 -minrt 50 -maxrt 2000 -irt 150 &> /dev/shm/client%d.log;''' %(base_dir, get_expdir(), client_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt",
-    config_object["system"], (config_object["num_replicas"] - 1)//3, numberOperations, client_id)
+./client -id %d -cl %d -r %d -cf %s -a %s -f %d -i %d -mb %d -srft 2 -srpt 2 -minrt 50 -maxrt 2000 -irt 150 &> /dev/shm/client%d.log;''' %(base_dir, get_expdir(), client_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt",
+    config_object["system"], (config_object["num_replicas"] - 1)//3, numberOperations, maxBatchSize, client_id)
     print(cmd)
     exec_remote_cmd(client, cmd)
 

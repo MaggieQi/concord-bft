@@ -32,6 +32,7 @@
 #include <iostream>
 #include <limits>
 #include <chrono>
+#include <vector>
 
 // bftEngine includes
 #include "CommFactory.hpp"
@@ -157,6 +158,8 @@ void parse_params(int argc, char** argv, ClientParams &cp,
         cp.configFileName = argv[i + 1];
       } else if (p == "-a") {
         cp.protocol = argv[i + 1];
+      } else if (p == "-mb") {
+        cp.maxBatchSize = std::stoi(argv[i + 1]);
       } else {
         printf("Unknown parameter %s\n", p.c_str());
         exit(-1);
@@ -260,6 +263,10 @@ int main(int argc, char **argv) {
   // operation.
   bool hasExpectedLastValue = false;
 
+  uint16_t currentBatchSize = 0;
+  std::vector<char> batchRequestBuffer;
+  batchRequestBuffer.reserve(sizeof(uint64_t) * 2 * cp.maxBatchSize);
+
   std::this_thread::sleep_for(std::chrono::milliseconds(30000));
   LOG_INFO(clientLogger, "Starting " << cp.numOfOperations);
 
@@ -327,6 +334,8 @@ int main(int argc, char **argv) {
           reinterpret_cast<const char*>(requestBuffer);
       const uint32_t rawRequestLength = sizeof(uint64_t) * kRequestLength;
 
+      batchRequestBuffer.insert(batchRequestBuffer.end(), rawRequestBuffer, rawRequestBuffer + rawRequestLength);
+      if (++currentBatchSize < cp.maxBatchSize) continue;
 
       const uint64_t timeout = SimpleClient::INFINITE_TIMEOUT;
 
@@ -335,10 +344,13 @@ int main(int argc, char **argv) {
       uint32_t actualReplyLength = 0;
 
       client->sendRequest(readOnly,
-                          rawRequestBuffer, rawRequestLength,
+                          batchRequestBuffer.data(), batchRequestBuffer.size(),
                           requestSequenceNumber,
                           timeout,
                           kReplyBufferLength, replyBuffer, actualReplyLength);
+
+      batchRequestBuffer.clear();
+      currentBatchSize = 0;
 
       // We can now check the expected value on the next read.
       hasExpectedLastValue = true;

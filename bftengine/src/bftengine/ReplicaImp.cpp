@@ -588,7 +588,7 @@ namespace bftEngine
 			
 			localStablePoint = getMonotonicTime();
 
-			LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)",
+			LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)",
 				pp->seqNumber(), (int)pp->numberOfRequests(), (int)requestsQueueOfPrimary.size());
 
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas())
