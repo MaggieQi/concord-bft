@@ -113,12 +113,12 @@ def setup_remote_env(client, host, do_install, network):
     # clone the codebase
     repo_name = "concord-bft"
     git_home = "https://github.com/MaggieQi/concord-bft"
-
+    update_code = False
     if do_install:
         exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git")
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
+        update_code = True
 
-    update_code = True
     if update_code:
         exec_remote_cmd(client, "rm -rf %s" % (repo_name))
         print "Cloing code..."
@@ -156,7 +156,7 @@ def run_experiment_server(hostid, client, config_object):
     if config_object["system"] == "concord":
         commitDuration = 0
     else:
-        commitDuration = 10
+        commitDuration = 100
 
     #-vc -vct <viewChangeTimeout> -stopseconds <stopSeconds>
     cmd = '''cd %s;
