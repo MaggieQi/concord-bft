@@ -115,7 +115,7 @@ def setup_remote_env(client, host, do_install, network):
     git_home = "https://github.com/MaggieQi/concord-bft"
     update_code = False
     if do_install:
-        exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git")
+        exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git ntpdate")
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
         update_code = True
 
@@ -137,7 +137,8 @@ def setup_remote_env(client, host, do_install, network):
     
     exec_local_cmd("scp private_replica* " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_local_cmd("scp test_config.txt " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
-
+    exec_remote_cmd(client, "sudo ntpdate time.windows.com")
+    
 def teardown_remote_env(client):
     server_kill_cmd = "pkill -9 server; pkill -9 client;"
     exec_remote_cmd(client, "%s" % (server_kill_cmd))

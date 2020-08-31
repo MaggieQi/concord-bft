@@ -774,7 +774,7 @@ namespace bftEngine
 			}
 			pp->setCollectStablePointMsg(&m);
 
-			LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d) with CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
+			LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d) with CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
 				pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size(), (int)m.numberOfRequests(), localStablePoint, localNextStablePoint);
 
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas())
@@ -1323,7 +1323,7 @@ namespace bftEngine
 		{
 
                         metric_received_full_commit_proofs_.Get().Inc();
-			LOG_INFO_F(GL, "Node %d received FullCommitProofMsg message for seqNumber %" PRId64 "",
+			LOG_DEBUG_F(GL, "Node %d received FullCommitProofMsg message for seqNumber %" PRId64 "",
 				(int)myReplicaId, (int)msg->seqNumber());
 
 			const SeqNum msgSeqNum = msg->seqNumber();
@@ -1988,7 +1988,7 @@ namespace bftEngine
 			const ViewNum msgViewNum = msg->getViewNumber();
 			Assert(msgLastStable % checkpointWindowSize == 0);
 
-			LOG_INFO_F(GL, "Node %d received ReplicaStatusMsg from node %d", (int)myReplicaId, (int)msgSenderId);
+			LOG_DEBUG_F(GL, "Node %d received ReplicaStatusMsg from node %d", (int)myReplicaId, (int)msgSenderId);
 
 			/////////////////////////////////////////////////////////////////////////
 			// Checkpoints
@@ -3702,12 +3702,14 @@ namespace bftEngine
 				uint64_t durationMilli = ((uint64_t)absDifference(getMonotonicTime(), req.requestSeqNum())) / 1000;
 				LOG_INFO_F(GL, "TotalOrderCommit: seqNum=%" PRId64 " numReqs=%d durationMilli=%d", ppMsg->seqNumber(), ppMsg->numberOfRequests(), (int)durationMilli);
 
+                /*
 				std::pair<std::uint16_t, std::uint64_t> key = std::make_pair(clientId, req.requestSeqNum());
 				auto timeit = reqTime.find(key);
 				if (timeit != reqTime.end()) {
 				  durationMilli = ((uint64_t)absDifference(getMonotonicTime(), timeit->second)) / 1000;
 				  LOG_INFO_F(GL, "ServerCommit: seqNum=%" PRId64 " numReqs=%d durationMilli=%d", ppMsg->seqNumber(), ppMsg->numberOfRequests(), (int)durationMilli);
 				}
+				*/
 			}
 
 			if ((lastExecutedSeqNum + 1) % checkpointWindowSize == 0) 
@@ -3719,7 +3721,7 @@ namespace bftEngine
 			lastExecutedSeqNum = lastExecutedSeqNum + 1;
                         metric_last_executed_seq_num_.Get().Set(lastExecutedSeqNum);
 
-			LOG_INFO_F(GL, "\nReplica - executeRequestsInPrePrepareMsg() - lastExecutedSeqNum==%" PRId64 "", lastExecutedSeqNum);
+			LOG_DEBUG_F(GL, "\nReplica - executeRequestsInPrePrepareMsg() - lastExecutedSeqNum==%" PRId64 "", lastExecutedSeqNum);
 
 			bool firstCommitPathChanged =
                           controller->onNewSeqNumberExecution(lastExecutedSeqNum);
@@ -3781,7 +3783,7 @@ namespace bftEngine
 			Assert(!stateTransfer->isCollectingState() && currentViewIsActive());
 			Assert(lastExecutedSeqNum >= lastStableSeqNum);
 	
-			LOG_INFO_F(GL, "Calling to executeReadWriteRequests(requestMissingInfo=%d)",(int)requestMissingInfo);
+			LOG_DEBUG_F(GL, "Calling to executeReadWriteRequests(requestMissingInfo=%d)",(int)requestMissingInfo);
 
 			while (lastExecutedSeqNum < lastStableSeqNum + kWorkWindowSize)
 			{
