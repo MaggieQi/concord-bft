@@ -60,6 +60,7 @@ string(APPEND CXX_FLAGS " -Wbuiltin-macro-redefined")
 if(IS_LEAKCHECK)
     string(APPEND CXX_FLAGS " -fsanitize=leak")
 endif()
+string(APPEND CXX_FLAGS " -Wno-unused-parameter")
 #string(APPEND CXX_FLAGS " -Werror")
 #string(APPEND CXX_FLAGS " -Wextra")
 
