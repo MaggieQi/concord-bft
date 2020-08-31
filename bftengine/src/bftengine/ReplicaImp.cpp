@@ -303,7 +303,7 @@ namespace bftEngine
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
 
-			LOG_INFO_F(GL, "Node %d received ClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
+			LOG_DEBUG_F(GL, "Node %d received ClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
 
 			if (stateTransfer->isCollectingState())
 			{
@@ -414,7 +414,7 @@ namespace bftEngine
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
 
-			LOG_INFO_F(GL, "Node %d received ClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
+			LOG_DEBUG_F(GL, "Node %d received ClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
 
 			if (stateTransfer->isCollectingState())
 			{
@@ -618,7 +618,7 @@ namespace bftEngine
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
 
-			LOG_INFO_F(GL, "Node %d received NewClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d", 
+			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d", 
 			    myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), m->timeStamp(), localStablePoint, clientId);
 
 			if (!clientsManager->isValidClient(clientId) || m->timeStamp() <= localStablePoint)
