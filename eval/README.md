@@ -23,13 +23,14 @@ To initialize the experiment environment in servers and clients, first modify th
 ```python
 import sys
 from optparse import OptionParser
+import json
 
 parser = OptionParser(usage="Usage: generate_config.py <options> num_replica_servers num_replica_threads num_client_servers num_client_threads")
 parser.add_option("-d", "--commit_duration", default=100, type="int", help="Archipelago consensus commit duration.")
 parser.add_option("-i", "--number_operations", default=2800, type="int", help="Number of operations each client sends.")
 parser.add_option("-r", "--replica_batchsize", default=1, type="int", help="Server max batch size.")
 parser.add_option("-c", "--client_batchsize", default=1, type="int", help="Client max batch size.")
-parser.add_option("-f", "--fresh_install", default=False, help="Reinstall dependencies and concord-bft code.")
+parser.add_option("-f", "--fresh_install", default=False, action='store_true', help="Reinstall dependencies and concord-bft code.")
 parser.add_option("-a", "--protocol", default="archipelago", type="string", help="run protocol concord or archipelago.")
 parser.add_option('-p', "--file_prefix", default="test", type="string", help="configure file path prefix.")
 
@@ -70,9 +71,9 @@ def generate_config(num_replica_servers, num_replica_threads, num_client_servers
     "commit_duration": %d,
     "number_operations": %d,
     "replica_batchsize": %d,
-    "client_batchsize": %d,
+    "client_batchsize": %d
 }
-    ''' % (num_replica_servers, num_replica_threads, num_client_servers, num_client_threads, options.fresh_install, options.protocol, options.commit_duration, options.number_operations, options.replica_batchsize, options.client_batchsize)
+''' % (num_replica_servers, num_replica_threads, num_client_servers, num_client_threads, json.dumps(options.fresh_install), options.protocol, options.commit_duration, options.number_operations, options.replica_batchsize, options.client_batchsize)
 
     f = open("%s_servers_%s_clients_%s_%s.json" % (options.file_prefix, num_replica_threads, num_client_threads, options.protocol), 'w')
     f.write(content)
@@ -89,7 +90,7 @@ if __name__ == '__main__':
 
 Then run the following commands in the driver machine (replace the \<number of servers\> \<number of replica threads\> \<number of clients\> \<number of client threads\> with the real number).
 ```bash
-python generate_config.py --file_prefix=init --protocol=concord --fresh_install=True <number of servers> <number of replica threads> <number of clients> <number of client threads>
+python generate_config.py --file_prefix=init --protocol=concord --fresh_install <number of servers> <number of replica threads> <number of clients> <number of client threads>
 python run.py init_servers_<number of replica threads>_clients_<number of client threads>_concord.json init
 ```
 It will install all the required dependencies and the concord-bft in all the servers and clients.
