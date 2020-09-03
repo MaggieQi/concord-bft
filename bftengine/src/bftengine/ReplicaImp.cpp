@@ -659,7 +659,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(commitDuration / 4);
+							uint64_t dt = (uint64_t)(commitDuration / 2);
 							if (getMonotonicTime() < m->timeStamp() - dt)
 								timeskew = m->timeStamp() - dt - getMonotonicTime();
 							else
@@ -3703,14 +3703,14 @@ namespace bftEngine
 				uint64_t durationMilli = ((uint64_t)absDifference(getMonotonicTime(), req.requestSeqNum())) / 1000;
 				LOG_INFO_F(GL, "TotalOrderCommit: seqNum=%" PRId64 " numReqs=%d durationMilli=%d", ppMsg->seqNumber(), ppMsg->numberOfRequests(), (int)durationMilli);
 
-
+                /*
 				std::pair<std::uint16_t, std::uint64_t> key = std::make_pair(clientId, req.requestSeqNum());
 				auto timeit = reqTime.find(key);
 				if (timeit != reqTime.end()) {
 				  durationMilli = ((uint64_t)absDifference(getMonotonicTime(), timeit->second)) / 1000;
 				  LOG_INFO_F(GL, "ServerCommit: seqNum=%" PRId64 " numReqs=%d durationMilli=%d", ppMsg->seqNumber(), ppMsg->numberOfRequests(), (int)durationMilli);
 				}
-
+                */
 			}
 
 			if ((lastExecutedSeqNum + 1) % checkpointWindowSize == 0) 
