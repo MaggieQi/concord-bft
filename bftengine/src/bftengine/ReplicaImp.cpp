@@ -623,6 +623,7 @@ namespace bftEngine
 
 			if (!clientsManager->isValidClient(clientId) || m->timeStamp() <= localStablePoint)
 			{
+				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", clientId, reqSeqNum, m->timeStamp(), localStablePoint);   
 				onReportAboutInvalidMessage(m);
 				delete m;
 				return;
@@ -658,7 +659,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(commitDuration);
+							uint64_t dt = (uint64_t)(commitDuration / 2);
 							if (getMonotonicTime() < m->timeStamp() - dt)
 								timeskew = m->timeStamp() - dt - getMonotonicTime();
 							else
