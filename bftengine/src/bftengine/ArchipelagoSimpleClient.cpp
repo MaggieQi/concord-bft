@@ -100,8 +100,6 @@ namespace bftEngine
             uint16_t clientPeriodicResetThresh;
 
             ClientGetTimeStampMsg* timestampMsg;
-            ClientGetTimeStampMsg dummy;
-            int dummyiters;
             std::unordered_map<ReplicaId, ClientSignedTimeStampMsg*> timestampsFromReplicas;
             bool timestampCollected = false;
             const uint16_t numRequired;
@@ -269,7 +267,6 @@ namespace bftEngine
             Assert(timeOfLastTransmission == MinTime);
             Assert(numberOfTransmissions == 0);
             
-            dummyiters = (int)(lengthOfRequest >> 4) - 1;
             DigestUtil::compute(request, lengthOfRequest, (timestampMsg->digestOfRequests()).content(), sizeof(DIGEST_SIZE));
 
             //static const std::chrono::milliseconds timersRes(timersResolutionMilli);
@@ -458,7 +455,7 @@ namespace bftEngine
 
             const bool resetReplies = (numberOfTransmissions % clientPeriodicResetThresh == 1);
 
-            LOG_INFO_F(GL,"Client %d - sends request %" PRIu64 " "
+            LOG_DEBUG_F(GL,"Client %d - sends request %" PRIu64 " "
                                                            "(isRO=%d, "
                                                    "request "
                                           "size=%zu, "
@@ -473,13 +470,6 @@ namespace bftEngine
                 for (auto&& m : timestampsFromReplicas) delete m.second;
                 timestampsFromReplicas.clear();
                 timestampCollected = false;
-
-                for (int i = 0; i < dummyiters; i++) {
-                    for (uint16_t r : _replicas)
-                    {
-                        _communication->sendAsyncMessage(r, dummy.body(), dummy.size());
-                    }
-                }
 
                 for (uint16_t r : _replicas)
                 {
