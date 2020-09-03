@@ -7,7 +7,7 @@ import json
 import sys
 from optparse import OptionParser
 
-def analyze_archipelago(system_type, data_dir, num_replicas, num_clients):
+def analyze_archipelago(system_type, data_dir, num_replicas, num_clients, num_operations):
     rslt_object = {}
 
     if system_type == 'archipelago':
@@ -70,7 +70,7 @@ def analyze_archipelago(system_type, data_dir, num_replicas, num_clients):
             end_time = endT
 
     duration = float((end_time - begin_time).total_seconds())
-    rslt_object['throughput'] = float(2800.0 * num_clients // duration) # query per second
+    rslt_object['throughput'] = float(num_operations * 1.0 * num_clients // duration) # query per second
     print (rslt_object)
     return rslt_object
 
@@ -81,10 +81,11 @@ def analyze(config_object):
 
     system_type = config_object["system"]
     experiment_name = config_object["exp_name"]
+    num_operations = config_object["number_operations"]
 
     # call the experiment specific analyze function
     rslt_object = {}
-    rslt_object = analyze_archipelago(system_type, data_dir, num_replicas, num_clients)
+    rslt_object = analyze_archipelago(system_type, data_dir, num_replicas, num_clients, num_operations)
 
     # dump processed results and config
     rslt_object["exp_config"] = config_object
