@@ -81,7 +81,6 @@ elif [ "$1" == "server_inc_result" ]; then
         grep \"50_totalorder_latency\" $best
         cp $best $EXPDIR/
     done
-    python plot.py $FOLDER server_inc_result .
 elif [ "$1" == "client_inc_result" ]; then
     echo "Calculate $protocol client increase experiment result"
     grep \"throughput\" $EXPDIR -R

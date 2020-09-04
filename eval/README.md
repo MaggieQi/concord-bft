@@ -8,10 +8,10 @@ Driver machine is to coordinate all the processes running in the servers and cli
 ```bash
 #!/bin/bash
 sudo apt-get update
-sudo apt-get install -y python-pip python-dev build-essential git
+sudo apt-get install -y python-pip python-dev python-tk build-essential git
 sudo pip install --upgrade pip
 sudo pip install --upgrade virtualenv
-sudo pip install paramiko numpy
+sudo pip install paramiko numpy matplotlib==2.2.4
 git clone https://github.com/MaggieQi/concord-bft
 cd concord-bft
 git checkout add_archipelago
@@ -41,27 +41,75 @@ def generate_config(num_replica_servers, num_replica_threads, num_client_servers
         "0": "10.0.0.5",
         "1": "10.0.0.6",
         "2": "10.0.0.7",
-        "3": "10.0.0.8"
+        "3": "10.0.0.8",
+        "4": "10.0.0.9",
+        "5": "10.0.0.10",
+        "6": "10.0.0.11",
+        "7": "10.0.0.12",
+        "8": "10.0.0.13",
+        "9": "10.0.0.14",
+        "10": "10.0.0.15",
+        "11": "10.0.0.16",
+        "12": "10.0.0.17",
+        "13": "10.0.0.18",
+        "14": "10.0.0.19",
+        "15": "10.0.0.20"
     },
     "server_resources": {
         "0": 4,
         "1": 4,
         "2": 4,
-        "3": 4
+        "3": 4,
+        "4": 4,
+        "5": 4,
+        "6": 4,
+        "7": 4,
+        "8": 4,
+        "9": 4,
+        "10": 4,
+        "11": 4,
+        "12": 4,
+        "13": 4,
+        "14": 4,
+        "15": 4
     },
     "num_replicas": %s,
     "num_clients": %s,
     "clients": {
-        "0": "10.0.0.9",
-        "1": "10.0.0.10",
-        "2": "10.0.0.11",
-        "3": "10.0.0.12"
+        "0": "10.0.0.24",
+        "1": "10.0.0.23",
+        "2": "10.0.0.22",
+        "3": "10.0.0.21",
+        "4": "10.0.0.20",
+        "5": "10.0.0.19",
+        "6": "10.0.0.18",
+        "7": "10.0.0.17",
+        "8": "10.0.0.16",
+        "9": "10.0.0.15",
+        "10": "10.0.0.14",
+        "11": "10.0.0.13",
+        "12": "10.0.0.12",
+        "13": "10.0.0.11",
+        "14": "10.0.0.10",
+        "15": "10.0.0.9"
     },
     "client_resources": {
         "0": 4,
         "1": 4,
         "2": 4,
-        "3": 4
+        "3": 4,
+        "4": 4,
+        "5": 4,
+        "6": 4,
+        "7": 4,
+        "8": 4,
+        "9": 4,
+        "10": 4,
+        "11": 4,
+        "12": 4,
+        "13": 4,
+        "14": 4,
+        "15": 4
     },
     "num_client_threads": %s,
     "do_fresh_install": %s,
@@ -97,8 +145,25 @@ It will install all the required dependencies and the concord-bft in all the ser
 
 Run experiments
 ----
-modify experiment.sh with the reasonable parameters, and run:
+* 6.1 End-to-end performance: Throughput and latency
+
+Peak throughput and median latency for a system with n = 4 nodes. Vary \beta to achieve the comparable consensus latency with archipelago(\beta=1). 
 ```bash
-./experiment.sh <experiment_name> <protocol>
+./experiment.sh client_inc concord 1
+./experiment.sh client_inc archipelago 1
+./experiment.sh client_inc concord <\beta>
+./experiment.sh client_inc archipelago <\beta>
+./experiment.sh client_inc_result concord
+./experiment.sh client_inc_result archipelago
 ```
-\<experiment_name\> should be client_inc or server_inc. \<protocol\> should be archipelago or concord.
+
+* 6.2 Scalability
+
+Peak throughput and median latency with varying number of nodes (from 4 to 16) and \beta = 1.
+```bash
+./experiment.sh server_inc concord
+./experiment.sh server_inc archipelago
+./experiment.sh server_inc_result concord
+./experiment.sh server_inc_result archipelago
+python plot.py ~/archipelago/paper/rslt server_inc_result .
+```
