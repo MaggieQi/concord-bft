@@ -27,7 +27,8 @@ def get_expdir():
 def setup_sshclient(host):
     client = SSHClient()
     client.set_missing_host_key_policy(AutoAddPolicy())
-    client.load_system_host_keys()
+    #client.load_system_host_keys()
+    client.load_host_keys(get_homedir() + '/.ssh/known_hosts')
     print "connection to: " + host
     client.connect(host, username=get_username())
     return client
@@ -86,7 +87,10 @@ def setup_local_logs():
 
     return dir_name
 
-def setup_experiment_config(servers, clients, num_replicas, per_server_threads, per_client_threads):
+def setup_experiment_config(servers, clients, num_replicas, per_server_threads, per_client_threads, do_install):
+    if do_install:
+        exec_local_cmd("./install_concord_deps.sh;")
+        exec_local_cmd("rm -rf ../build;")
     exec_local_cmd("./build.sh;")
     exec_local_cmd('''export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/local/include;
 ../build/tools/GenerateConcordKeys -n %d -f %d -o private_replica_;''' % (num_replicas, (num_replicas-1)//3))
@@ -166,7 +170,6 @@ rm core;
 ulimit -n 4096;ulimit -c unlimited;
 ./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d  &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", 
     config_object["system"], maxBatchSize, commitDuration, replica_id)
-    print(cmd)
     exec_remote_cmd(client, cmd)
 
 def run_experiment_client(hostid, client, config_object):
@@ -184,7 +187,6 @@ rm core;
 ulimit -c unlimited;
 ./client -id %d -cl %d -r %d -cf %s -a %s -f %d -i %d -mb %d -srft 2 -srpt 2 -minrt 50 -maxrt 2000 -irt 150 &> /dev/shm/client%d.log;''' %(base_dir, get_expdir(), client_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt",
     config_object["system"], (config_object["num_replicas"] - 1)//3, numberOperations, maxBatchSize, client_id)
-    print(cmd)
     exec_remote_cmd(client, cmd)
 
     # let the clients run
@@ -238,7 +240,7 @@ def experiment(config_object, step = 'all'):
 
     if step.find('all') >= 0 or step.find('init') >= 0:
         # build keys and configs for servers
-        setup_experiment_config(serverips, clientips, num_replicas, per_server_threads, per_client_threads)
+        setup_experiment_config(serverips, clientips, num_replicas, per_server_threads, per_client_threads, do_fresh_install)
 
         thread_list = []
         for host in serverips + clientips:
