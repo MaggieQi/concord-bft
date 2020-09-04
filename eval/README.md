@@ -147,19 +147,19 @@ Run experiments
 ----
 * 6.1 End-to-end performance: Throughput and latency
 
-Peak throughput and median latency for a system with n = 4 nodes. Vary \beta to achieve the comparable consensus latency with archipelago(\beta=1). 
+Peak throughput and median latency for a system with n = 4 nodes. Vary $\beta$ to achieve the comparable consensus latency with archipelago ($\beta=1$). 
 ```bash
 ./experiment.sh client_inc concord 1
 ./experiment.sh client_inc archipelago 1
-./experiment.sh client_inc concord <\beta>
-./experiment.sh client_inc archipelago <\beta>
+./experiment.sh client_inc concord <$\beta$>
+./experiment.sh client_inc archipelago <$\beta$>
 ./experiment.sh client_inc_result concord
 ./experiment.sh client_inc_result archipelago
 ```
 
 * 6.2 Scalability
 
-Peak throughput and median latency with varying number of nodes (from 4 to 16) and \beta = 1.
+Peak throughput and median latency with varying number of nodes (from 4 to 16) and $\beta=1$.
 ```bash
 ./experiment.sh server_inc concord
 ./experiment.sh server_inc archipelago

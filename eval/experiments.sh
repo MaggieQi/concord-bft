@@ -6,7 +6,8 @@ commit_duration=100
 beta=1
 if [ "$3" != "" ]; then
     beta=$3
-    echo "Set batch size: $beta"
+    number_operations=$(($number_operations*$beta))
+    echo "Set batch size: $beta number of operations: $number_operations"
 fi
 
 mkdir -p $EXPDIR
