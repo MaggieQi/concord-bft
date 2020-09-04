@@ -299,7 +299,7 @@ namespace bftEngine
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
 
-			LOG_DEBUG_F(GL, "Node %d received ClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
+			LOG_DEBUG_F(GL, "Node %d received BatchClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d) from Node %d", myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, senderId);
 
 			if (stateTransfer->isCollectingState())
 			{

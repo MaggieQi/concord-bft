@@ -401,7 +401,7 @@ namespace bftEngine
 				                   (numberOfTransmissions == clientSendsRequestToAllReplicasFirstThresh) ||
 								   (numberOfTransmissions > clientSendsRequestToAllReplicasFirstThresh && (numberOfTransmissions % clientSendsRequestToAllReplicasPeriodThresh == 0)) ||
 								   resetReplies;
-
+            sendToAll = true;
 			LOG_INFO_F(GL,"Client %d - sends request %" PRIu64 " "
 														   "(isRO=%d, "
 												   "request "
