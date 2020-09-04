@@ -659,7 +659,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(commitDuration / 2);
+							uint64_t dt = 0; //(uint64_t)(commitDuration / 2);
 							if (getMonotonicTime() < m->timeStamp() - dt)
 								timeskew = m->timeStamp() - dt - getMonotonicTime();
 							else
@@ -743,7 +743,7 @@ namespace bftEngine
 
         void ReplicaImp::tryToSendStablePoints()
 		{
-			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint) / commitDuration * commitDuration;
+			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint); // / commitDuration * commitDuration;
 			/*
 			if (requestsQueueOfPrimary.size() >= maxBatchSize) {
 				LOG_INFO_F(GL, "CQDEBUG: localCommitSet=%d adjust smaller: commitDuration=%" PRIu64 " delta=%" PRIu64 "", (int)localCommitSet.size(), commitDuration, (std::uint64_t)delta);
