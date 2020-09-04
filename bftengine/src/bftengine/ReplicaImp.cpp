@@ -270,7 +270,7 @@ namespace bftEngine
 				ClientRequestMsg *m = (ClientRequestMsg*)pMsg;
 				if (!m->isReadOnly()) {
 					CombinedTimeStampMsg t(m->clientProxyId(), (CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(m->requestBuf() + m->requestLength()));
-					//t.checkTimeStamps(tverifier);
+					t.checkTimeStamps(tverifier);
 					//t.checkTimeStamps(verifier);
 				}
 			}
