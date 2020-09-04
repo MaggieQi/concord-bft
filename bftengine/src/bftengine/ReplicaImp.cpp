@@ -293,10 +293,6 @@ namespace bftEngine
 
 		void ReplicaImp::onBatchMessage(ClientRequestMsg *m)
 		{
-			if (commitDuration > 0) {
-				onNewMessage(m);
-				return;
-			}
                         metric_received_client_requests_.Get().Inc();
 			const NodeIdType senderId = m->senderId();
 			const NodeIdType clientId = m->clientProxyId();
@@ -407,7 +403,11 @@ namespace bftEngine
 			if (commitDuration > 0) {
 				onNewMessage(m);
 				return;
+			} else if (maxBatchSize > 1) {
+				onBatchMessage(m);
+				return;
 			}
+
                         metric_received_client_requests_.Get().Inc();
 			const NodeIdType senderId = m->senderId();
 			const NodeIdType clientId = m->clientProxyId();
