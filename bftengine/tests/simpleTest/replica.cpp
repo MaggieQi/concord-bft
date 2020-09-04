@@ -253,8 +253,8 @@ class SimpleAppState : public RequestsHandler {
     } else {
       // Our read-write request includes one eight-byte argument, in addition to
       // the request type.
-      test_assert(requestSize == 2 * sizeof(uint64_t),
-          "requestSize != " << 2 * sizeof(uint64_t));
+      //test_assert(requestSize == 2 * sizeof(uint64_t),
+      //    "requestSize != " << 2 * sizeof(uint64_t));
 
       // We only support the WRITE operation in read-write mode.
       const uint64_t* pReqId = reinterpret_cast<const uint64_t*>(request);
