@@ -664,11 +664,11 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(commitDuration / 100);
-							if (getMonotonicTime() < m->timeStamp() - dt)
-								timeskew = m->timeStamp() - dt - getMonotonicTime();
+							uint64_t dt = (uint64_t)(1000);
+							if (getMonotonicTime() < m->timeStamp() + dt)
+								timeskew = m->timeStamp() + dt - getMonotonicTime();
 							else
-								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - m->timeStamp() + dt);
+								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - m->timeStamp() - dt);
 							LOG_INFO_F(GL, "CQDEBUG:TimeSkew:%" PRId64 "", timeskew);
 						}
 						
