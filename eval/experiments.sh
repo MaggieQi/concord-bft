@@ -6,7 +6,9 @@ commit_duration=100
 beta=1
 if [ "$3" != "" ]; then
     beta=$3
-    number_operations=$((10*$beta))
+    if [ "$beta" != "1" ]; then
+        number_operations=$((10*$beta))
+    fi
     echo "Set batch size: $beta number of operations: $number_operations"
 fi
 
