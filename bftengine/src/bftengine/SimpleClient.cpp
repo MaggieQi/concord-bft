@@ -396,12 +396,13 @@ namespace bftEngine
 			numberOfTransmissions++;
 
 			const bool resetReplies = (numberOfTransmissions % clientPeriodicResetThresh == 0);
-
+            /*
 			const bool sendToAll = pendingRequest->isReadOnly() || !_primaryReplicaIsKnown || 
 				                   (numberOfTransmissions == clientSendsRequestToAllReplicasFirstThresh) ||
 								   (numberOfTransmissions > clientSendsRequestToAllReplicasFirstThresh && (numberOfTransmissions % clientSendsRequestToAllReplicasPeriodThresh == 0)) ||
 								   resetReplies;
-            sendToAll = true;
+            */
+			const bool sendToAll = true;
 			LOG_INFO_F(GL,"Client %d - sends request %" PRIu64 " "
 														   "(isRO=%d, "
 												   "request "
