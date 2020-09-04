@@ -225,7 +225,7 @@ namespace bftEngine
 			class MsgReceiver : public IReceiver
 			{
 			public:
-				MsgReceiver(SigManager* v, IThresholdVerifier* t, IncomingMsgsStorage& queue, IncomingMsgsStorage* oqueue);
+				MsgReceiver(SigManager* v, IThresholdVerifier* t, IncomingMsgsStorage& queue, IncomingMsgsStorage* oqueue, uint64_t* tstable);
 
 				virtual ~MsgReceiver() {};
 
@@ -239,7 +239,7 @@ namespace bftEngine
 				IThresholdVerifier* tverifier;
 				IncomingMsgsStorage& incomingMsgs;
 				IncomingMsgsStorage* orderingMsgs;
-
+                uint64_t* stableTimeStamp;
 			};
 
 

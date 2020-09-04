@@ -245,8 +245,8 @@ namespace bftEngine
 			}
 		}
 
-		ReplicaImp::MsgReceiver::MsgReceiver(SigManager* v, IThresholdVerifier* t, IncomingMsgsStorage& queue, IncomingMsgsStorage* oqueue)
-			:  verifier{ v }, tverifier{ t }, incomingMsgs{ queue }, orderingMsgs{ oqueue }
+		ReplicaImp::MsgReceiver::MsgReceiver(SigManager* v, IThresholdVerifier* t, IncomingMsgsStorage& queue, IncomingMsgsStorage* oqueue, uint64_t* tstable)
+			:  verifier{ v }, tverifier{ t }, incomingMsgs{ queue }, orderingMsgs{ oqueue }, stableTimeStamp{ tstable }
 		{
 		}
 
@@ -270,7 +270,7 @@ namespace bftEngine
 				ClientRequestMsg *m = (ClientRequestMsg*)pMsg;
 				if (!m->isReadOnly()) {
 					CombinedTimeStampMsg t(m->clientProxyId(), (CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(m->requestBuf() + m->requestLength()));
-					t.checkTimeStamps(tverifier);
+					if (t.timeStamp() > *stableTimeStamp) t.checkTimeStamps(tverifier);
 					//t.checkTimeStamps(verifier);
 				}
 			}
@@ -623,6 +623,11 @@ namespace bftEngine
 
 			if (!clientsManager->isValidClient(clientId) || m->timeStamp() <= localStablePoint)
 			{
+				uint64_t invalidSeqNum = reqSeqNum - 1;
+				ClientReplyMsg reply(myReplicaId, reqSeqNum, (char*)&invalidSeqNum, sizeof(uint64_t));
+				reply.setPrimaryId(currentPrimary());
+				send(&reply, clientId);
+
 				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", clientId, reqSeqNum, m->timeStamp(), localStablePoint);   
 				onReportAboutInvalidMessage(m);
 				delete m;
@@ -3337,7 +3342,7 @@ namespace bftEngine
 
 			sigManager = new SigManager(myReplicaId, numOfReplicas + numOfClientProxies, config.replicaPrivateKey, replicasSigPublicKeys);
 
-			msgReceiver = new MsgReceiver(sigManager, thresholdVerifierForSlowPathCommit, incomingMsgsStorage, (commitDuration > 0)? &orderingMsgsStorage : nullptr);
+			msgReceiver = new MsgReceiver(sigManager, thresholdVerifierForSlowPathCommit, incomingMsgsStorage, (commitDuration > 0)? &orderingMsgsStorage : nullptr, &localStablePoint);
 
 			communication->setReceiver(myReplicaId, msgReceiver);
 			int comStatus = communication->Start();

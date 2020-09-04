@@ -103,6 +103,7 @@ namespace bftEngine
             std::unordered_map<ReplicaId, ClientSignedTimeStampMsg*> timestampsFromReplicas;
             bool timestampCollected = false;
             const uint16_t numRequired;
+            bool invalid = false;
 
             void sendPendingRequest();
 
@@ -149,6 +150,13 @@ namespace bftEngine
 
             if (msg->reqSeqNum() != pendingRequest->requestSeqNum())
             {
+                delete msg;
+                return;
+            }
+
+            if (*reinterpret_cast<uint64_t*>(msg->replyBuf()) != msg->reqSeqNum())
+            {
+                invalid = true;
                 delete msg;
                 return;
             }
@@ -319,7 +327,7 @@ namespace bftEngine
                     break;
                 }
 
-                if (((uint64_t)absDifference(timeOfLastTransmission, currTime))/1000 > limitOfExpectedOperationTime.upperLimit())
+                if (invalid || ((uint64_t)absDifference(timeOfLastTransmission, currTime))/1000 > limitOfExpectedOperationTime.upperLimit())
                 {
                     onRetransmission();
                 }
@@ -453,7 +461,7 @@ namespace bftEngine
             timeOfLastTransmission = getMonotonicTime();
             numberOfTransmissions++;
 
-            const bool resetReplies = (numberOfTransmissions % clientPeriodicResetThresh == 1);
+            const bool resetReplies = (numberOfTransmissions % clientPeriodicResetThresh == 1) || invalid;
 
             LOG_DEBUG_F(GL,"Client %d - sends request %" PRIu64 " "
                                                            "(isRO=%d, "
@@ -466,6 +474,7 @@ namespace bftEngine
 
             if (resetReplies)
             {
+                invalid = false;
                 replysCertificate.resetAndFree();
                 for (auto&& m : timestampsFromReplicas) delete m.second;
                 timestampsFromReplicas.clear();
