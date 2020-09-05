@@ -199,3 +199,4 @@ We conduct the expriments of Figure 6 in our new cloud instance and below is the
 | n=16 |          41.0               |        50.0         |           81.0                 |             23.0             |
 
 Note that the baseline uses BLS threshold signature to reduce the total computational cost of verifying signatures. Therefore, the verification cost will not increase much when the number of servers increases. Archipelago-C, Hotstuff and Archipelago-Hotstuff use other signature verification method (since the timestamps from different replicas that need to be verified are different), therefore the timestamp verification cost will increase linearly with the number of servers.
+
