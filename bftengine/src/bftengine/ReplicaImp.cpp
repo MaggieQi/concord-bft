@@ -278,7 +278,7 @@ namespace bftEngine
 			// TODO(GG): TBD: do we want to verify messages in this thread (communication) ?
 			//LOG_INFO_F(GL, "Receive message type %d from Node %d", (int)pMsg->type(), (int)sourceNode);
             //incomingMsgs.pushExternalMsg(pMsg);
-			if (orderingMsgs && (pMsg->type() >= MsgCode::PrePrepare)) {
+			if (orderingMsgs && (pMsg->type() > MsgCode::PrePrepare)) {
 				orderingMsgs->pushExternalOrderingMsg(pMsg);
 			} else {
 				incomingMsgs.pushExternalMsg(pMsg);
@@ -748,28 +748,36 @@ namespace bftEngine
 
         void ReplicaImp::tryToSendStablePoints()
 		{
+			if (localStablePoint < localNextStablePoint) return;
+            if (primaryLastUsedSeqNum + 1 <= lastExecutedSeqNum + maxConcurrentAgreementsByPrimary) {
+				PrePrepareMsg* pp = generatePrePrepareMsg();
+				if (pp != nullptr) {
+					for (ReplicaId x : repsInfo->idsOfPeerReplicas())
+					{
+						sendRetransmittableMsgToReplica(pp, x, primaryLastUsedSeqNum);
+					}
+
+					SeqNumInfo& seqNumInfo = mainLog->get(primaryLastUsedSeqNum);
+					seqNumInfo.addSelfMsg(pp);
+                    LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)", pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size());
+
+					if (pp->firstPath() == CommitPath::SLOW)
+					{
+						seqNumInfo.startSlowPath();
+							metric_slow_path_count_.Get().Inc();
+						sendPreparePartial(seqNumInfo);
+					}
+					else
+					{
+						sendPartialProof(seqNumInfo);
+					}
+				}
+			}
+
 			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint); // / commitDuration * commitDuration;
-			/*
-			if (requestsQueueOfPrimary.size() >= maxBatchSize) {
-				LOG_INFO_F(GL, "CQDEBUG: localCommitSet=%d adjust smaller: commitDuration=%" PRIu64 " delta=%" PRIu64 "", (int)localCommitSet.size(), commitDuration, (std::uint64_t)delta);
-				if (commitDuration >= 2) commitDuration >>= 1;
-			}
-			*/
-			if (static_cast<std::uint64_t>(delta) < commitDuration || localStablePoint < localNextStablePoint) return;
-			if (primaryLastUsedSeqNum + 1 > lastExecutedSeqNum + maxConcurrentAgreementsByPrimary) return;
-            /*
-            if (requestsQueueOfPrimary.size() < (maxBatchSize << 2)) {
-                LOG_INFO_F(GL, "CQDEBUG: localCommitSet=%d adjust larger: commitDuration=%" PRIu64 " delta=%" PRIu64 "", (int)localCommitSet.size(), commitDuration, (std::uint64_t)delta);
-				if ((commitDuration << 1) <= maxCommitDuration) commitDuration <<= 1;
-				else commitDuration = maxCommitDuration;
-			}
-            */
+			if (static_cast<std::uint64_t>(delta) < commitDuration) return;
 
 			localCommitMsgs.clear();
-			PrePrepareMsg* pp = generatePrePrepareMsg();
-			if (pp == nullptr)
-			    pp = new PrePrepareMsg(myReplicaId, curView, primaryLastUsedSeqNum + 1, CommitPath::SLOW, false);
-
 			localNextStablePoint = localStablePoint + delta;
             CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
 			for (auto it = localCommitSet.begin(); it != localCommitSet.end(); it++) {
@@ -778,33 +786,11 @@ namespace bftEngine
 					m.addRequest(it->second);
 				}
 			}
-			pp->setCollectStablePointMsg(&m);
 
-			LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d) with CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
-				pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size(), (int)m.numberOfRequests(), localStablePoint, localNextStablePoint);
+			for (ReplicaId x : repsInfo->idsOfPeerReplicas()) send(&m, x);
 
-			for (ReplicaId x : repsInfo->idsOfPeerReplicas())
-			{
-				sendRetransmittableMsgToReplica(pp, x, primaryLastUsedSeqNum);
-			}
-
-			if (pp->numberOfRequests() != 0) {
-				SeqNumInfo& seqNumInfo = mainLog->get(primaryLastUsedSeqNum);
-				seqNumInfo.addSelfMsg(pp);
-
-				if (pp->firstPath() == CommitPath::SLOW)
-				{
-					seqNumInfo.startSlowPath();
-					    metric_slow_path_count_.Get().Inc();
-					sendPreparePartial(seqNumInfo);
-				}
-				else
-				{
-					sendPartialProof(seqNumInfo);
-				}
-			} else {
-				delete pp;
-			}
+			LOG_INFO_F(GL, "Sending CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
+				(int)m.numberOfRequests(), localStablePoint, localNextStablePoint);
 		}
 
         void ReplicaImp::onMessage(CollectStablePointMsg* msg)
@@ -836,6 +822,7 @@ namespace bftEngine
 
 			send(&m, msg->senderId());
 			localStablePoint = msg->nextStablePoint();
+			delete msg;
 		}
 
 		void ReplicaImp::onMessage(LocalCommitSetMsg* msg)
@@ -933,16 +920,16 @@ namespace bftEngine
 			LOG_INFO_F(GL, "Node %d received PrePrepareMsg from node %d for seqNumber %" PRId64 " (size=%d)",
 				(int)myReplicaId, (int)msg->senderId(), msgSeqNum, (int)msg->size());
 
+            /*
 			if (commitDuration > 0) {
 				CollectStablePointMsg m(msg->senderId(), (CollectStablePointMsg::CollectStablePointMsgHeader*)msg->extMsg());
 				onMessage(&m);
-				//auto body = (CollectStablePointMsg::CollectStablePointMsgHeader*)msg->extMsg();
-				//msgReceiver->onNewMessage(msg->senderId(), (char*)body, body->endLocationOfLastRequest);
 				if (msg->numberOfRequests() == 0) {
 					delete msg;
 					return;
 				}
 			}
+            */
 
 			if (!currentViewIsActive() && viewsManager->waitingForMsgs() && msgSeqNum > lastStableSeqNum)
 			{

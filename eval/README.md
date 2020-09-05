@@ -151,19 +151,33 @@ Run experiments
 ----
 * 6.1 End-to-end performance: Throughput and latency
 
-Peak throughput and median latency for a system with n = 4 nodes. Vary *B* to achieve the comparable consensus latency with archipelago (*B*=1).
+Peak throughput and median latency for a system with n = 4 nodes. Vary beta to achieve the comparable consensus latency with archipelago (beta=1).
 ```bash
 ./experiment.sh client_inc concord 1
 ./experiment.sh client_inc archipelago 1
-./experiment.sh client_inc concord <B>
-./experiment.sh client_inc archipelago <B>
+./experiment.sh client_inc concord <beta>
+./experiment.sh client_inc archipelago <beta>
 ./experiment.sh client_inc_result concord
 ./experiment.sh client_inc_result archipelago
 ```
 
+### Validate claim1
+
+> :warning: The cloud instance we used for our submission were deleted by Azure. We are using a similar instance for revision now and here are the numbers on this new cloud instance. They are similar but not completely the same as our Figure 4 in the submission. 
+
+
+|                             | throughput (cmd/s) | latency (ms)       | validation |
+|-----------------------------|--------------------|--------------------|------------|
+| Concord (beta = 1)          |                |                 | step1.1    |
+| Concord (beta = 80)        |              |                 | step1.3    |
+| Archipelago-C (beta = 1)   |                |     | step1.2    |
+| Archipelago-C (beta = 200) |               |   | step1.4    |
+
+In claim1, we say that Archipelago achieves higher throughput than baseline (? > ?; ? > ?) at the cost of increased latency (? > ?). But latencies are comparable (? vs. ?) when batching commands (beta is the batch size).
+
 * 6.2 Scalability
 
-Peak throughput and median latency with varying number of nodes (from 4 to 16) and *B*=1.
+Peak throughput and median latency with varying number of nodes (from 4 to 16) and beta=1.
 ```bash
 ./experiment.sh server_inc concord
 ./experiment.sh server_inc archipelago
@@ -171,3 +185,16 @@ Peak throughput and median latency with varying number of nodes (from 4 to 16) a
 ./experiment.sh server_inc_result archipelago
 python plot.py ~/archipelago/paper/rslt server_inc_result .
 ```
+### Validate claim2
+
+We conduct the expriments of Figure 6 in our new cloud instance and below is the raw data. The plot of this table looks basically the same as Figure 6 in our submission.
+
+|      | baseline throughput (cmd/s) | median latency (ms) | Archipelago throughput (cmd/s) | median ordering latency (ms) |
+|------|-----------------------------|---------------------|--------------------------------|------------------------------|
+| n=4  |                          |                 |                        |                          |
+| n=7  |                          |                 |                            |                           |
+| n=10 |                          |                |                             |                         |
+| n=13 |                          |                 |                            |                         |
+| n=16 |                          |                |                           |                          |
+
+Claim2 says that Archipelago's throughput degrades similarly to its baseline because the degrade ratio ?/?=2.15 and ?/?=2.29 is similar.
