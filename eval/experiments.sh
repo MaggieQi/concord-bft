@@ -7,7 +7,7 @@ beta=1
 if [ "$3" != "" ]; then
     beta=$3
     if [ "$beta" != "1" ]; then
-        number_operations=$((10*$beta))
+        number_operations=$((50*$beta))
     fi
     echo "Set batch size: $beta number of operations: $number_operations"
 fi
@@ -18,7 +18,8 @@ if [ "$1" == "client_inc" ]; then
     echo "RUN $protocol client increase experiment"
     rm -rf $EXPDIR/*
     best=''
-    best_throughput=0
+    best_throughput=0.0
+    best_latency=10000.0
     for ((i=2;i<512;i=i*2)); do
         if [ "$protocol" == "archipelago" ]; then
             python generate_config.py --file_prefix=config/test --protocol=$protocol --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration 4 4 16 $i
@@ -31,9 +32,16 @@ if [ "$1" == "client_inc" ]; then
         cp latest_rslt/rslt.json $dest
 
         throughput=`grep \"throughput\" $dest | awk '{print $2;}'`
-        threshold=$(echo $best_throughput*1.1 | bc)
-        if (( $(echo "$throughput > $threshold" | bc -l) )); then
+        latency=`grep \"50_totalorder_latency\" $dest | awk '{split($2,s,",");print s[1];}'`
+
+        latency_td=$(echo "$latency < $best_latency*2.0" | bc -l)
+        throughput_td=$(echo "$throughput > $best_throughput*1.1" | bc -l)
+
+        echo "throughput: $throughput latency:$latency throughput_td:$throughput_td latency_td:$latency_td"
+
+        if [ "$throughput_td" == "1" ] && [ "$latency_td" == "1" ]; then
             best_throughput=$throughput
+            best_latency=$latency
             best=$dest
         else
             break

@@ -10,7 +10,7 @@ from optparse import OptionParser
 def analyze_archipelago(system_type, data_dir, num_replicas, num_clients, num_operations):
     rslt_object = {}
 
-    if system_type == 'archipelago':
+    if True:
         ll = []
         for j in range(0, num_replicas):
             replica_log = '%s/replica%d.log' % (data_dir, j)
