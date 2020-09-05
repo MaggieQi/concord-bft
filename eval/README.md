@@ -1,6 +1,6 @@
 # Archipelago-C
 
-This repo contains our implementation of Archipelago on top of Concord. Please contact Qi Chen(cheqi@microsoft.com) for questions about this repo.
+This repo contains our implementation of Archipelago on top of Concord.
 
 Experiment Setup
 ----
@@ -153,13 +153,14 @@ Run experiments
 
 Peak throughput and median latency for a system with n = 4 nodes. Vary beta to achieve the comparable consensus latency with archipelago (beta=1).
 ```bash
-./experiment.sh client_inc concord 1
-./experiment.sh client_inc archipelago 1
-./experiment.sh client_inc concord <beta>
-./experiment.sh client_inc archipelago <beta>
-./experiment.sh client_inc_result concord
-./experiment.sh client_inc_result archipelago
+./experiment.sh client_inc concord 1             # step1.1
+./experiment.sh client_inc archipelago 1         # step1.2
+./experiment.sh client_inc concord <beta>        # step1.3
+./experiment.sh client_inc archipelago <beta>    # step1.4
+./experiment.sh client_inc_result concord        # check concord peak results for different beta
+./experiment.sh client_inc_result archipelago    # check archipelago peak results for different beta
 ```
+Note the results will contain throughput, 50_latency (ordering latency) and 50_totalorder_latency (ordering + consensus latency).
 
 ### Validate claim1
 
@@ -168,12 +169,12 @@ Peak throughput and median latency for a system with n = 4 nodes. Vary beta to a
 
 |                             | throughput (cmd/s) | latency (ms)       | validation |
 |-----------------------------|--------------------|--------------------|------------|
-| Concord (beta = 1)          |                |                 | step1.1    |
-| Concord (beta = 80)        |              |                 | step1.3    |
-| Archipelago-C (beta = 1)   |                |     | step1.2    |
-| Archipelago-C (beta = 200) |               |   | step1.4    |
+| Concord (beta = 1)          |        43.0        |      48.0          | step1.1    |
+| Concord (beta = 1500)       |      6322.0        |      109.0         | step1.3    |
+| Archipelago-C (beta = 1)    |       315.0        | 11.0(o) 108.0\(c\) | step1.2    |
+| Archipelago-C (beta = 200)  |     54127.0        | 9.0(o) 92.0\(c\)   | step1.4    |
 
-In claim1, we say that Archipelago achieves higher throughput than baseline (? > ?; ? > ?) at the cost of increased latency (? > ?). But latencies are comparable (? vs. ?) when batching commands (beta is the batch size).
+In claim1, we say that Archipelago achieves higher throughput than baseline (315.0 > 43.0; 54127.0 > 6322.0) at the cost of increased latency (108.0 > 48.0). But latencies are comparable (109.0 vs. 108.0) when batching commands (beta is the batch size).
 
 * 6.2 Scalability
 
@@ -191,10 +192,8 @@ We conduct the expriments of Figure 6 in our new cloud instance and below is the
 
 |      | baseline throughput (cmd/s) | median latency (ms) | Archipelago throughput (cmd/s) | median ordering latency (ms) |
 |------|-----------------------------|---------------------|--------------------------------|------------------------------|
-| n=4  |                          |                 |                        |                          |
-| n=7  |                          |                 |                            |                           |
-| n=10 |                          |                |                             |                         |
-| n=13 |                          |                 |                            |                         |
-| n=16 |                          |                |                           |                          |
-
-Claim2 says that Archipelago's throughput degrades similarly to its baseline because the degrade ratio ?/?=2.15 and ?/?=2.29 is similar.
+| n=4  |          45.0               |        47.0         |           320.0                |             12.0             |
+| n=7  |          42.0               |        47.0         |           177.0                |             10.0             |
+| n=10 |          41.0               |        49.0         |           126.0                |             14.0             |
+| n=13 |          42.0               |        49.0         |           101.0                |             18.0             |
+| n=16 |          41.0               |        50.0         |           81.0                 |             23.0             |
