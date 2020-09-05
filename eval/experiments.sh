@@ -16,7 +16,6 @@ mkdir -p $EXPDIR
 mkdir config
 if [ "$1" == "client_inc" ]; then
     echo "RUN $protocol client increase experiment"
-    rm -rf $EXPDIR/*
     best=''
     best_throughput=0.0
     best_latency=10000.0

@@ -74,10 +74,10 @@ def new_plot(folder, results, prefix):
  
     plt.savefig(folder + '/' + prefix + '_throughput_latency.png')
 
-def analysis(folder, high_limit, low_limit, prefix):
+def analysis(folder, high_limit, low_limit, prefix, filter):
     res = {'num_client_threads':[], 'num_replicas':[], 'throughput':[], 'avg_latency':[], 'avg_totalorder_latency':[], '50_latency':[], '90_latency':[],
            '99_latency':[], '50_totalorder_latency':[], '90_totalorder_latency':[], '99_totalorder_latency':[]}
-    files = [f for f in os.listdir(folder)]
+    files = [f for f in os.listdir(folder) if f.find(filter) >= 0]
     if prefix.startswith('server_inc'):
         func = lambda s: int(s.split('_')[3])
     else:
@@ -101,14 +101,14 @@ def analysis(folder, high_limit, low_limit, prefix):
 
 if __name__ == '__main__':
     if len(sys.argv) < 4:
-        print ('Usage: python plot.py <input folder> <exp> <output folder>')
+        print ('Usage: python plot.py <input folder> <exp> <output folder> <filter>')
         exit(1)
 
     high_limit = None
     low_limit = None
     results = {}
-    results['Archipelago-C'] =  analysis(sys.argv[1] + '/archipelago/' + sys.argv[2], high_limit, low_limit, sys.argv[2])
-    results['Concord'] = analysis(sys.argv[1] + '/concord/' + sys.argv[2], high_limit, low_limit, sys.argv[2])
+    results['Archipelago-C'] =  analysis(sys.argv[1] + '/archipelago/' + sys.argv[2], high_limit, low_limit, sys.argv[2], sys.argv[4] if len(sys.argv) > 4 else '_')
+    results['Concord'] = analysis(sys.argv[1] + '/concord/' + sys.argv[2], high_limit, low_limit, sys.argv[2], sys.argv[4] if len(sys.argv) > 4 else '_')
     for key in results:
         print ("%s:%r" % (key, results[key]))
     plot(sys.argv[3], results, sys.argv[2])
