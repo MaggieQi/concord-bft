@@ -759,7 +759,7 @@ namespace bftEngine
 
 					SeqNumInfo& seqNumInfo = mainLog->get(primaryLastUsedSeqNum);
 					seqNumInfo.addSelfMsg(pp);
-                    LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)", pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size());
+                    LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)", pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size());
 
 					if (pp->firstPath() == CommitPath::SLOW)
 					{
@@ -789,7 +789,7 @@ namespace bftEngine
 
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas()) send(&m, x);
 
-			LOG_INFO_F(GL, "Sending CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
+			LOG_DEBUG_F(GL, "Sending CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
 				(int)m.numberOfRequests(), localStablePoint, localNextStablePoint);
 		}
 
