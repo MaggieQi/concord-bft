@@ -169,7 +169,7 @@ namespace bftEngine
 			// write currentPrimaryId to message (we don't store the currentPrimaryId in the reserved pages)
 			r->setPrimaryId(currentPrimaryId);
 
-			LOG_INFO_F(GL, "allocateNewReplyMsgAndWriteToStorage returns reply with hash=%" PRIu64"", r->debugHash());
+			LOG_DEBUG_F(GL, "allocateNewReplyMsgAndWriteToStorage returns reply with hash=%" PRIu64"", r->debugHash());
 
 
 			return r;
@@ -222,7 +222,7 @@ namespace bftEngine
 			
 			r->setPrimaryId(currentPrimaryId);
 
-			LOG_INFO_F(GL, "allocateMsgWithLatestReply returns reply with hash=%" PRIu64"", r->debugHash());
+			LOG_DEBUG_F(GL, "allocateMsgWithLatestReply returns reply with hash=%" PRIu64"", r->debugHash());
 			
 			return r;
 		}
@@ -233,7 +233,8 @@ namespace bftEngine
 			uint16_t idx = clientIdToIndex_.at(clientId);
 			const ClientInfo& c = indexToClientInfo_.at(idx);
 
-			if (c.currentPendingRequest != 0) return false; // if has pending request
+            if (reqSeqNum <= c.currentPendingRequest) return false;
+			//if (c.currentPendingRequest != 0) return false; // if has pending request
 
 			if(reqSeqNum <= c.lastSeqNumberOfReply) return false; // if already executed a later/equivalent request
 
