@@ -1,3 +1,7 @@
+# Archipelago-C
+
+This repo contains our implementation of Archipelago on top of Concord. Please contact Qi Chen(cheqi@microsoft.com) for questions about this repo.
+
 Experiment Setup
 ----
 Prepare a cluster of machines (virtual machines) which can be connected to each other without ssh password.

@@ -780,7 +780,7 @@ namespace bftEngine
 			}
 			pp->setCollectStablePointMsg(&m);
 
-			LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d) with CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
+			LOG_INFO_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d) with CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
 				pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size(), (int)m.numberOfRequests(), localStablePoint, localNextStablePoint);
 
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas())
