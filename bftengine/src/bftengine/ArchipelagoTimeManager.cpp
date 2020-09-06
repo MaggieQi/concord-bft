@@ -140,7 +140,7 @@ namespace bftEngine
 
           bool succ = ((BLS::Relic::BlsThresholdVerifier*)verifier)->verify(h, g, 
             ((BLS::Relic::BlsPublicKey&)(verifier->getShareVerificationKey(t->replicaId + 1))).getPoint());
-          if (!succ) LOG_INFO_F(GL, "Verify Error!");
+          if (!succ) return false;
         }
 
         remains--;
