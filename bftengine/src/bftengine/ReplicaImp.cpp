@@ -270,7 +270,11 @@ namespace bftEngine
 				ClientRequestMsg *m = (ClientRequestMsg*)pMsg;
 				if (!m->isReadOnly()) {
 					CombinedTimeStampMsg t(m->clientProxyId(), (CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(m->requestBuf() + m->requestLength()));
-					if (t.timeStamp() > *stableTimeStamp) t.checkTimeStamps(tverifier);
+					if (t.timeStamp() > *stableTimeStamp) {
+						if (!t.checkTimeStamps(tverifier)) {
+							LOG_INFO_F(GL, "Verify Error!");
+						}
+					}
 					//t.checkTimeStamps(verifier);
 				}
 			}
@@ -699,9 +703,10 @@ namespace bftEngine
 		}
 
         PrePrepareMsg* ReplicaImp::generatePrePrepareMsg() {
+
 			if (primaryLastUsedSeqNum + 1 > lastStableSeqNum + kWorkWindowSize) return nullptr;
 
-			//if (primaryLastUsedSeqNum + 1 > lastExecutedSeqNum + maxConcurrentAgreementsByPrimary) return nullptr; // TODO(GG): should also be checked by the non-primary replicas
+			if (primaryLastUsedSeqNum + 1 > lastExecutedSeqNum + maxConcurrentAgreementsByPrimary) return nullptr; // TODO(GG): should also be checked by the non-primary replicas
 
 			if (requestsQueueOfPrimary.empty()) return nullptr;
 
@@ -748,34 +753,8 @@ namespace bftEngine
 
         void ReplicaImp::tryToSendStablePoints()
 		{
-			if (localStablePoint < localNextStablePoint) return;
-            if (primaryLastUsedSeqNum + 1 <= lastExecutedSeqNum + maxConcurrentAgreementsByPrimary) {
-				PrePrepareMsg* pp = generatePrePrepareMsg();
-				if (pp != nullptr) {
-					for (ReplicaId x : repsInfo->idsOfPeerReplicas())
-					{
-						sendRetransmittableMsgToReplica(pp, x, primaryLastUsedSeqNum);
-					}
-
-					SeqNumInfo& seqNumInfo = mainLog->get(primaryLastUsedSeqNum);
-					seqNumInfo.addSelfMsg(pp);
-                    LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)", pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size());
-
-					if (pp->firstPath() == CommitPath::SLOW)
-					{
-						seqNumInfo.startSlowPath();
-							metric_slow_path_count_.Get().Inc();
-						sendPreparePartial(seqNumInfo);
-					}
-					else
-					{
-						sendPartialProof(seqNumInfo);
-					}
-				}
-			}
-
 			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint); // / commitDuration * commitDuration;
-			if (static_cast<std::uint64_t>(delta) < commitDuration) return;
+			if (static_cast<std::uint64_t>(delta) < commitDuration || localStablePoint < localNextStablePoint) return;
 
 			localCommitMsgs.clear();
 			localNextStablePoint = localStablePoint + delta;
@@ -862,6 +841,29 @@ namespace bftEngine
 					}
 				}
 				localStablePoint = localNextStablePoint;
+
+				PrePrepareMsg* pp = generatePrePrepareMsg();
+				if (pp != nullptr) {
+					for (ReplicaId x : repsInfo->idsOfPeerReplicas())
+					{
+						sendRetransmittableMsgToReplica(pp, x, primaryLastUsedSeqNum);
+					}
+
+					SeqNumInfo& seqNumInfo = mainLog->get(primaryLastUsedSeqNum);
+					seqNumInfo.addSelfMsg(pp);
+					LOG_DEBUG_F(GL, "Sending PrePrepareMsg (seqNumber=%" PRId64 ", requests=%d, size=%d)", pp->seqNumber(), (int)pp->numberOfRequests(), (int)localCommitSet.size());
+
+					if (pp->firstPath() == CommitPath::SLOW)
+					{
+						seqNumInfo.startSlowPath();
+							metric_slow_path_count_.Get().Inc();
+						sendPreparePartial(seqNumInfo);
+					}
+					else
+					{
+						sendPartialProof(seqNumInfo);
+					}
+				}
 			}
 			delete msg;
 		}
