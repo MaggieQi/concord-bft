@@ -143,7 +143,8 @@ if __name__ == '__main__':
 Then run the following commands in the driver machine (replace the \<number of servers\> \<number of replica threads\> \<number of clients\> \<number of client threads\> with the real number).
 ```bash
 python generate_config.py --file_prefix=init --protocol=concord --fresh_install <number of servers> <number of replica threads> <number of clients> <number of client threads>
-python run.py init_servers_<number of replica threads>_clients_<number of client threads>_concord.json init # :warning: it should be run two times
+python run.py init_servers_<number of replica threads>_clients_<number of client threads>_concord.json init # warning: it should be run two times
+python run.py init_servers_<number of replica threads>_clients_<number of client threads>_concord.json init
 ```
 It will install all the required dependencies and the concord-bft in all the servers and clients.
 
