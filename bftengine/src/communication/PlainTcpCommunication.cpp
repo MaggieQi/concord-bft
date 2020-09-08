@@ -872,7 +872,8 @@ class PlainTCPCommunication::PlainTcpImpl {
     */
     _pIoThread = new boost::thread_group;    
     for (unsigned i = 0; i < _listenThreads; ++i)
-      _pIoThread->create_thread(boost::bind(&boost::asio::io_service::run, &_service));
+      _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+      //_pIoThread->create_thread(boost::bind(&boost::asio::io_service::run, &_service));
     return 0;
   }
 

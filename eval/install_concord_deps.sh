@@ -7,7 +7,7 @@ sudo apt-get install -y git clang g++ cmake clang-format libgmp3-dev parallel
 wget https://dl.bintray.com/boostorg/release/1.64.0/source/boost_1_64_0.tar.gz
 tar -xf boost_1_64_0.tar.gz
 cd boost_1_64_0
-./bootstrap.sh --with-libraries=system,filesystem
+./bootstrap.sh --with-libraries=thread,system,filesystem
 ./b2
 sudo ./b2 install
 cd ..
