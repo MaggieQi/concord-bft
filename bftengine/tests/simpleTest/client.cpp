@@ -160,6 +160,8 @@ void parse_params(int argc, char** argv, ClientParams &cp,
         cp.protocol = argv[i + 1];
       } else if (p == "-mb") {
         cp.maxBatchSize = std::stoi(argv[i + 1]);
+      } else if (p == "-payload") {
+        cp.payloadBytes = std::stoi(argv[i + 1]);
       } else {
         printf("Unknown parameter %s\n", p.c_str());
         exit(-1);
@@ -263,9 +265,10 @@ int main(int argc, char **argv) {
   // operation.
   bool hasExpectedLastValue = false;
 
+  std::vector<char> requestBuffer(sizeof(uint64_t) + cp.payloadBytes);
   uint16_t currentBatchSize = 0;
   std::vector<char> batchRequestBuffer;
-  batchRequestBuffer.reserve(sizeof(uint64_t) * 2 * cp.maxBatchSize);
+  batchRequestBuffer.reserve((sizeof(uint64_t) + cp.payloadBytes) * cp.maxBatchSize);
 
   std::this_thread::sleep_for(std::chrono::milliseconds(30000));
   LOG_INFO(clientLogger, "Starting " << cp.numOfOperations);
@@ -290,12 +293,7 @@ int main(int argc, char **argv) {
       // Prepare request parameters.
       const bool readOnly = true;
 
-      const uint32_t kRequestLength = 1;
-      const uint64_t requestBuffer[kRequestLength] = {READ_VAL_REQ};
-      const char* rawRequestBuffer =
-          reinterpret_cast<const char*>(requestBuffer);
-      const uint32_t rawRequestLength = sizeof(uint64_t) * kRequestLength;
-
+      *((uint64_t*)(requestBuffer.data())) = READ_VAL_REQ;
 
       const uint64_t timeout = SimpleClient::INFINITE_TIMEOUT;
 
@@ -304,7 +302,7 @@ int main(int argc, char **argv) {
       uint32_t actualReplyLength = 0;
 
       client->sendRequest(readOnly,
-                          rawRequestBuffer, rawRequestLength,
+                          requestBuffer.data(), requestBuffer.size(),
                           requestSequenceNumber,
                           timeout,
                           kReplyBufferLength, replyBuffer, actualReplyLength);
@@ -327,14 +325,10 @@ int main(int argc, char **argv) {
       // Prepare request parameters.
       const bool readOnly = false;
 
-      const uint32_t kRequestLength = 2;
-      const uint64_t requestBuffer[kRequestLength] =
-          {SET_VAL_REQ, expectedLastValue};
-      const char* rawRequestBuffer =
-          reinterpret_cast<const char*>(requestBuffer);
-      const uint32_t rawRequestLength = sizeof(uint64_t) * kRequestLength;
+      *((uint64_t*)(requestBuffer.data())) = SET_VAL_REQ;
+      *((uint64_t*)(requestBuffer.data()) + 1) = expectedLastValue;
 
-      batchRequestBuffer.insert(batchRequestBuffer.end(), rawRequestBuffer, rawRequestBuffer + rawRequestLength);
+      batchRequestBuffer.insert(batchRequestBuffer.end(), requestBuffer.begin(), requestBuffer.end());
       if (++currentBatchSize < cp.maxBatchSize) continue;
 
       const uint64_t timeout = SimpleClient::INFINITE_TIMEOUT;
