@@ -175,6 +175,9 @@ void parse_params(int argc, char** argv) {
         } else if (p == "-commit") {
           rp.commitTimerMillisec = std::stoi(argv[i + 1]);
           i += 2;
+        } else if (p == "-threads") {
+          rp.listenThreads = std::stoi(argv[i + 1]);
+          i += 2;
         } else {
           printf("Unknown parameter %s\n", p.c_str());
           exit(-1);
@@ -336,6 +339,8 @@ int main(int argc, char **argv) {
                                                     rp.numOfClients,
                                                     rp.numOfReplicas,
                                                     rp.configFileName);
+  conf.listenThreads = rp.listenThreads;
+  
 #elif USE_COMM_TLS_TCP
   TlsTcpConfig conf = testCommConfig.GetTlsTCPConfig(true, rp.replicaId,
                                                      rp.numOfClients,

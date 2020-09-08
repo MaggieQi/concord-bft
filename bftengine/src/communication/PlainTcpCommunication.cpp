@@ -34,6 +34,7 @@
 #include "Logger.hpp"
 #include "boost/bind.hpp"
 #include <boost/asio.hpp>
+#include <boost/thread.hpp>
 #include <boost/shared_ptr.hpp>
 #include <boost/move/unique_ptr.hpp>
 #include <boost/make_shared.hpp>
@@ -682,7 +683,8 @@ class PlainTCPCommunication::PlainTcpImpl {
       ("concord-bft.tcp");
 
   unique_ptr<tcp::acceptor> _pAcceptor;
-  std::thread *_pIoThread = nullptr;
+  //std::thread *_pIoThread = nullptr;
+  boost::thread_group *_pIoThread = nullptr;
 
   NodeNum _selfId;
   IReceiver *_pReceiver;
@@ -695,6 +697,7 @@ class PlainTCPCommunication::PlainTcpImpl {
   UPDATE_CONNECTIVITY_FN _statusCallback = nullptr;
   recursive_mutex _connectionsGuard;
   NodeMap _nodes;
+  uint32_t _listenThreads;
 
   void on_async_connection_error(NodeNum peerId) {
     LOG_ERROR(_logger, "to: " << peerId);
@@ -769,19 +772,22 @@ class PlainTCPCommunication::PlainTcpImpl {
                uint16_t listenPort,
                uint32_t maxServerId,
                string listenIp,
-               UPDATE_CONNECTIVITY_FN statusCallback) :
+               UPDATE_CONNECTIVITY_FN statusCallback,
+               uint32_t listenThreads) :
       _selfId{selfNodeId},
       _listenPort{listenPort},
       _listenIp{listenIp},
       _bufferLength{bufferLength},
       _maxServerId{maxServerId},
       _statusCallback{statusCallback},
-      _nodes{nodes} {
+      _nodes{nodes},
+      _listenThreads{listenThreads} {
     // all replicas are in listen mode
     if (_selfId <= _maxServerId) {
       LOG_DEBUG(_logger, "node " << _selfId << " listening on " << _listenPort);
       tcp::endpoint ep(address::from_string(_listenIp), _listenPort);
       _pAcceptor = boost::make_unique<tcp::acceptor>(_service, ep);
+      _pAcceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
       start_accept();
     } else // clients dont need to listen
       LOG_INFO(_logger, "skipping listen for node: " << _selfId);
@@ -841,25 +847,32 @@ class PlainTCPCommunication::PlainTcpImpl {
          uint16_t listenPort,
          uint32_t tempHighestNodeForConnecting,
          string listenIp,
-         UPDATE_CONNECTIVITY_FN statusCallback) {
+         UPDATE_CONNECTIVITY_FN statusCallback,
+         uint32_t listenThreads) {
     return new PlainTcpImpl(selfNodeId,
                             nodes,
                             bufferLength,
                             listenPort,
                             tempHighestNodeForConnecting,
                             listenIp,
-                            statusCallback);
+                            statusCallback,
+                            listenThreads);
   }
 
   int Start() {
     if (_pIoThread)
       return 0; // running
 
+    /*  
     _pIoThread =
         new std::thread(std::bind
                             (static_cast<size_t(boost::asio::io_service::*)()>(
                                  &boost::asio::io_service::run),
                              std::ref(_service)));
+    */
+    _pIoThread = new boost::thread_group;    
+    for (unsigned i = 0; i < _listenThreads; ++i)
+      _pIoThread->create_thread(boost::bind(&boost::asio::io_service::run, &_service));
     return 0;
   }
 
@@ -872,7 +885,8 @@ class PlainTCPCommunication::PlainTcpImpl {
       return 0; // stopped
 
     _service.stop();
-    _pIoThread->join();
+    //_pIoThread->join();
+    _pIoThread->join_all();
 
     _connections.clear();
 
@@ -938,6 +952,7 @@ class PlainTCPCommunication::PlainTcpImpl {
 
   virtual ~PlainTcpImpl() {
     LOG_TRACE(_logger, "PlainTCPDtor");
+    delete _pIoThread;
     _pIoThread = nullptr;
   }
 };
@@ -955,7 +970,8 @@ PlainTCPCommunication::PlainTCPCommunication(const PlainTcpConfig &config) {
                                   config.listenPort,
                                   config.maxServerId,
                                   config.listenIp,
-                                  config.statusCallback);
+                                  config.statusCallback,
+                                  config.listenThreads);
 }
 
 PlainTCPCommunication *PlainTCPCommunication::create(

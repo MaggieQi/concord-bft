@@ -48,6 +48,7 @@ struct ReplicaParams {
   uint16_t maxBatchSize = 1;
   uint16_t commitTimerMillisec = 0;
   uint32_t stopAtSec = 0xfffffffe;
+  uint32_t listenThreads = 1;
 };
 
 #endif //CONCORD_BFT_TEST_PARAMETERS_HPP
