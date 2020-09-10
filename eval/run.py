@@ -120,6 +120,7 @@ def setup_remote_env(client, host, do_install, network):
     update_code = False
     if do_install:
         exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git ntpdate")
+        exec_remote_cmd(client, "rm -rf %s;git clone %s;cd %s;git checkout add_multiple_listenthreads" % (repo_name, git_home, repo_name))
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
         update_code = True
 
@@ -130,7 +131,7 @@ def setup_remote_env(client, host, do_install, network):
 
         # reset repo
         exec_remote_cmd(client, "cd %s; git reset --hard; git pull --rebase" % (repo_name))
-        exec_remote_cmd(client, "cd %s; git checkout add_archipelago" % (repo_name))
+        exec_remote_cmd(client, "cd %s; git checkout add_multiple_listenthreads" % (repo_name))
 
         #build code
         if network == 'tcp':
