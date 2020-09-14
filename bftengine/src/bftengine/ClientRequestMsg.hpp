@@ -61,6 +61,8 @@ namespace bftEngine
 
 			void setCombinedTimestamp(CombinedTimeStampMsg* msg);
 
+			void setClientProxyId(uint16_t client) { b()->idOfClientProxy = client; }
+
 			uint64_t timeStamp() const;
 
 			char* digest() const;

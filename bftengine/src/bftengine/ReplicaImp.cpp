@@ -270,12 +270,10 @@ namespace bftEngine
 				ClientRequestMsg *m = (ClientRequestMsg*)pMsg;
 				if (!m->isReadOnly()) {
 					CombinedTimeStampMsg t(m->clientProxyId(), (CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(m->requestBuf() + m->requestLength()));
-					if (t.timeStamp() > *stableTimeStamp) {
-						if (!t.checkTimeStamps(tverifier)) {
-							LOG_INFO_F(GL, "Verify Error!");
-						}
+					if (t.timeStamp() <= *stableTimeStamp || !t.checkTimeStamps(tverifier)) { //t.checkTimeStamps(verifier);
+						LOG_INFO_F(GL, "Verify Error!");
+						m->setClientProxyId(UINT16_MAX);
 					}
-					//t.checkTimeStamps(verifier);
 				}
 			}
             
@@ -622,17 +620,17 @@ namespace bftEngine
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
 
-			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d", 
-			    myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), m->timeStamp(), localStablePoint, clientId);
+			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d",
+			    myReplicaId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), m->timeStamp(), localStablePoint, m->senderId());
 
-			if (!clientsManager->isValidClient(clientId) || m->timeStamp() <= localStablePoint)
+			if (!clientsManager->isValidClient(clientId))
 			{
 				uint64_t invalidSeqNum = reqSeqNum - 1;
 				ClientReplyMsg reply(myReplicaId, reqSeqNum, (char*)&invalidSeqNum, sizeof(uint64_t));
 				reply.setPrimaryId(currentPrimary());
-				send(&reply, clientId);
+				send(&reply, m->senderId());
 
-				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", clientId, reqSeqNum, m->timeStamp(), localStablePoint);   
+				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", m->senderId(), reqSeqNum, m->timeStamp(), localStablePoint);
 				//onReportAboutInvalidMessage(m);
 				delete m;
 				return;
