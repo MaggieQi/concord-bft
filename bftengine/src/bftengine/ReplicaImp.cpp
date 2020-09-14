@@ -668,7 +668,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(commitDuration / 10);
+							uint64_t dt = (uint64_t)(0);
 							if (getMonotonicTime() < m->timeStamp() - dt)
 								timeskew = m->timeStamp() - dt - getMonotonicTime();
 							else

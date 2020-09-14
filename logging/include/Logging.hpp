@@ -120,7 +120,7 @@ class Log
 #define LOG_TRACE_F(l, ...) LOG_COMMON_F(l, concordlogger::LogLevel::trace, __VA_ARGS__)
 
 #define LOG_DEBUG(l, s)     {}//LOG_COMMON(l, concordlogger::LogLevel::debug, s)
-#define LOG_DEBUG_F(l, ...) {}//LOG_COMMON_F(l, concordlogger::LogLevel::debug, __VA_ARGS__)
+#define LOG_DEBUG_F(l, ...) {}LOG_COMMON_F(l, concordlogger::LogLevel::debug, __VA_ARGS__)
 
 #define LOG_INFO(l, s)      LOG_COMMON(l, concordlogger::LogLevel::info, s)
 #define LOG_INFO_F(l, ...)  LOG_COMMON_F(l, concordlogger::LogLevel::info, __VA_ARGS__)
