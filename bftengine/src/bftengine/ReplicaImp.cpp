@@ -619,18 +619,19 @@ namespace bftEngine
 			const NodeIdType clientId = m->clientProxyId();
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
+			const uint64_t timestamp = m->timeStamp();
 
 			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d",
-			    myReplicaId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), m->timeStamp(), localStablePoint, m->senderId());
+			    myReplicaId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), timestamp, localStablePoint, m->senderId());
 
-			if (!clientsManager->isValidClient(clientId))
+			if (!clientsManager->isValidClient(clientId) || timestamp < localStablePoint)
 			{
 				uint64_t invalidSeqNum = reqSeqNum - 1;
 				ClientReplyMsg reply(myReplicaId, reqSeqNum, (char*)&invalidSeqNum, sizeof(uint64_t));
 				reply.setPrimaryId(currentPrimary());
 				send(&reply, m->senderId());
 
-				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", m->senderId(), reqSeqNum, m->timeStamp(), localStablePoint);
+				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", m->senderId(), reqSeqNum, timestamp, localStablePoint);
 				//onReportAboutInvalidMessage(m);
 				delete m;
 				return;
@@ -667,10 +668,10 @@ namespace bftEngine
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
 							uint64_t dt = (uint64_t)(0);
-							if (getMonotonicTime() < m->timeStamp() - dt)
-								timeskew = m->timeStamp() - dt - getMonotonicTime();
+							if (getMonotonicTime() <timestamp - dt)
+								timeskew = timestamp - dt - getMonotonicTime();
 							else
-								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - m->timeStamp() + dt);
+								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - timestamp + dt);
 							LOG_INFO_F(GL, "CQDEBUG:TimeSkew:%" PRId64 "", timeskew);
 						}
 						
