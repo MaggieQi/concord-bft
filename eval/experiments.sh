@@ -55,7 +55,6 @@ if [ "$1" == "client_inc" ]; then
     grep \"50_totalorder_latency\" $best
 elif [ "$1" == "server_inc" ]; then
     echo "RUN $protocol server increase experiment"
-    rm -rf $EXPDIR/*
     for ((i=1;i<=5;i=i+1)); do
         numservers=$(($i*3+1))
         for ((j=2;j<=8;j=j*2)); do
@@ -66,23 +65,25 @@ elif [ "$1" == "server_inc" ]; then
             fi
             python run.py config/test_servers_$numservers\_clients_$j\_$protocol.json
             python analyze.py latest_rslt/config.json
-            cp latest_rslt/rslt.json $EXPDIR/server_inc_servers_$numservers\_clients_$j.json
+	    dest=$EXPDIR/server_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
+            cp latest_rslt/rslt.json $dest
         done
     done
 elif [ "$1" == "server_inc_result" ]; then
     echo "Calculate $protocol server increase experiment result"
-    rm -rf $EXPDIR/*
+    rm -rf $EXPDIR/*_beta_$beta\_*
     for ((i=1;i<=5;i=i+1)); do
         numservers=$(($i*3+1))
         best=''
         best_throughput=0
         for ((j=2;j<=8;j=j*2)); do
-            throughput=`grep \"throughput\" $FOLDER/$protocol/server_inc/server_inc_servers_$numservers\_clients_$j.json | awk '{print $2;}'`
+	    dest=$FOLDER/$protocol/server_inc/server_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json 
+            throughput=`grep \"throughput\" $dest | awk '{print $2;}'`
             threshold=$(echo $best_throughput*1.1 | bc)
             #echo servers_$numservers\_clients_$j:$threshold $throughput
             if (( $(echo "$throughput > $threshold" | bc -l) )); then
                 best_throughput=$throughput
-                best=$FOLDER/$protocol/server_inc/server_inc_servers_$numservers\_clients_$j.json
+                best=$dest
             fi
         done
         echo "best: $best"
