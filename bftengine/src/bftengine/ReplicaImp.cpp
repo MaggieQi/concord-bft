@@ -633,7 +633,7 @@ namespace bftEngine
 				send(&reply, clientId);
 
 				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", clientId, reqSeqNum, m->timeStamp(), localStablePoint);   
-				onReportAboutInvalidMessage(m);
+				//onReportAboutInvalidMessage(m);
 				delete m;
 				return;
 			}
