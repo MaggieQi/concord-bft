@@ -667,7 +667,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(0);
+							uint64_t dt = (uint64_t)(10000);
 							if (getMonotonicTime() <timestamp - dt)
 								timeskew = timestamp - dt - getMonotonicTime();
 							else
@@ -755,7 +755,6 @@ namespace bftEngine
 			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint); // / commitDuration * commitDuration;
 			if (static_cast<std::uint64_t>(delta) < commitDuration || localStablePoint < localNextStablePoint) return;
 
-			localCommitMsgs.clear();
 			localNextStablePoint = localStablePoint + delta;
             CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
 			for (auto it = localCommitSet.begin(); it != localCommitSet.end(); it++) {
@@ -764,7 +763,12 @@ namespace bftEngine
 					m.addRequest(it->second);
 				}
 			}
+			if (m.numberOfRequests() == 0) {
+				localNextStablePoint = localStablePoint;
+				return;
+			}
 
+			localCommitMsgs.clear();
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas()) send(&m, x);
 
 			LOG_DEBUG_F(GL, "Sending CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
