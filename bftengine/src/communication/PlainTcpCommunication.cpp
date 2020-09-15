@@ -717,7 +717,7 @@ class PlainTCPCommunication::PlainTcpImpl {
   }
 
   io_service* get_io_service() {
-    if (_numConnections++ < _maxServerId) return &_replicaService;
+    //if (_numConnections++ < _maxServerId) return &_replicaService;
     return &_service;
   }
 
