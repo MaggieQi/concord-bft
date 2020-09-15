@@ -690,6 +690,7 @@ class PlainTCPCommunication::PlainTcpImpl {
   IReceiver *_pReceiver;
 
   io_service _service;
+  io_service _replicaService;
   uint16_t _listenPort;
   string _listenIp;
   uint32_t _bufferLength;
@@ -698,6 +699,7 @@ class PlainTCPCommunication::PlainTcpImpl {
   recursive_mutex _connectionsGuard;
   NodeMap _nodes;
   uint32_t _listenThreads;
+  uint16_t _numConnections = 0;
 
   void on_async_connection_error(NodeNum peerId) {
     LOG_ERROR(_logger, "to: " << peerId);
@@ -712,6 +714,11 @@ class PlainTCPCommunication::PlainTcpImpl {
     lock_guard<recursive_mutex> lock(_connectionsGuard);
     _connections.insert(make_pair(id, conn));
     conn->setReceiver(_pReceiver);
+  }
+
+  io_service* get_io_service() {
+    if (_numConnections++ < _maxServerId) return &_replicaService;
+    return &_service;
   }
 
   void on_accept(ASYNC_CONN_PTR conn,
@@ -735,7 +742,7 @@ class PlainTCPCommunication::PlainTcpImpl {
     LOG_TRACE(_logger, "enter, node: " << _selfId);
 
     auto conn = AsyncTcpConnection::
-    create(&_service,
+    create(get_io_service(),
            std::bind(
                &PlainTcpImpl::on_async_connection_error,
                this,
@@ -871,8 +878,9 @@ class PlainTCPCommunication::PlainTcpImpl {
                              std::ref(_service)));
     */
     _pIoThread = new boost::thread_group;    
-    for (unsigned i = 0; i < _listenThreads; ++i)
+    for (unsigned i = 1; i < _listenThreads; ++i)
       _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_replicaService)));
       //_pIoThread->create_thread(boost::bind(&boost::asio::io_service::run, &_service));
     return 0;
   }
@@ -886,6 +894,8 @@ class PlainTCPCommunication::PlainTcpImpl {
       return 0; // stopped
 
     _service.stop();
+    _replicaService.stop();
+
     //_pIoThread->join();
     _pIoThread->join_all();
 
