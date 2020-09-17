@@ -140,6 +140,11 @@ def setup_remote_env(client, host, do_install, network):
             #exec_remote_cmd(client, "sudo sysctl -w net.core.rmem_max=41943040; sudo sysctl -w net.core.wmem_max=41943040; sudo sysctl -w net.core.netdev_max_backlog=4000;")
             exec_remote_cmd(client, "cd %s; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release ..; make -j 16;" % (repo_name))
     
+    copyfiles = ["bftengine/src/communication/PlainTcpCommunication.cpp", "bftengine/src/bftengine/ReplicaImp.cpp", "logging/include/Logging.hpp"]
+    for copyfile in copyfiles:
+        exec_local_cmd("scp ../" + copyfile + " " + host + ":" + get_homedir() + '/' + repo_name + '/' + copyfile)
+    #exec_remote_cmd(client, "cd %s/build; make clean; make -j 16;" % (repo_name))
+
     exec_local_cmd("scp private_replica* " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_local_cmd("scp test_config.txt " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_remote_cmd(client, "sudo ntpdate time.windows.com")
@@ -152,12 +157,13 @@ def teardown_remote_env(client):
     cmd = "rm -f /dev/shm/*.log"
     exec_remote_cmd(client, cmd)
     
-def run_experiment_server(hostid, client, config_object):
+def run_experiment_server(hostid, client, config_object, threads):
     print "Running experiment"
 
     base_dir = "concord-bft"
     replica_id = hostid
     maxBatchSize = int(config_object["replica_batchsize"])
+    threads = 8
     if config_object["system"] == "concord":
         commitDuration = 0
     else:
@@ -169,8 +175,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_P
 cd %s;
 rm core;
 ulimit -n 4096;ulimit -c unlimited;
-./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d  &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", 
-    config_object["system"], maxBatchSize, commitDuration, replica_id)
+./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d -threads %d &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", config_object["system"], maxBatchSize, commitDuration, threads, replica_id)
     exec_remote_cmd(client, cmd)
 
 def run_experiment_client(hostid, client, config_object):
@@ -180,14 +185,14 @@ def run_experiment_client(hostid, client, config_object):
     client_id = hostid
     numberOperations = int(config_object["number_operations"])
     maxBatchSize = int(config_object["client_batchsize"])
+    payload = 32
 
     cmd = '''cd %s;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/local/include;
 cd %s;
 rm core;
 ulimit -c unlimited;
-./client -id %d -cl %d -r %d -cf %s -a %s -f %d -i %d -mb %d -srft 2 -srpt 2 -minrt 50 -maxrt 2000 -irt 150 &> /dev/shm/client%d.log;''' %(base_dir, get_expdir(), client_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt",
-    config_object["system"], (config_object["num_replicas"] - 1)//3, numberOperations, maxBatchSize, client_id)
+./client -id %d -cl %d -r %d -cf %s -a %s -f %d -i %d -mb %d -srft 2 -srpt 2 -minrt 50 -maxrt 2000 -irt 150 -payload %d &> /dev/shm/client%d.log;''' %(base_dir, get_expdir(), client_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", config_object["system"], (config_object["num_replicas"] - 1)//3, numberOperations, maxBatchSize, payload, client_id)
     exec_remote_cmd(client, cmd)
 
     # let the clients run
@@ -221,6 +226,9 @@ def experiment(config_object, step = 'all'):
     do_fresh_install = config_object["do_fresh_install"]
     network = config_object["network"]
 
+    if num_servers > num_replicas: num_servers = num_replicas
+    if num_clients > num_client_threads: num_clients = num_client_threads
+
     per_client_threads = calc_per_node_threads(num_client_threads, num_clients, client_resources)
     per_server_threads = calc_per_node_threads(num_replicas, num_servers, server_resources)
     print ("client threads:%r" % per_client_threads)
@@ -244,7 +252,7 @@ def experiment(config_object, step = 'all'):
         setup_experiment_config(serverips, clientips, num_replicas, per_server_threads, per_client_threads, do_fresh_install)
 
         thread_list = []
-        for host in serverips + clientips:
+        for host in set(serverips + clientips):
             ssh_client = setup_sshclient(host)
             t = threading.Thread(target = setup_remote_env, args = (ssh_client, host, do_fresh_install, network,) )
             thread_list.append(t)
@@ -259,10 +267,10 @@ def experiment(config_object, step = 'all'):
         # Start servers
         nodeid = 0
         thread_list = []
-        for host, num_replicas_per_server in zip(serverips, per_server_threads):
+        for i, (host, num_replicas_per_server) in enumerate(zip(serverips, per_server_threads)):
             for _ in range(num_replicas_per_server):
                 client = setup_sshclient(host)
-                t = threading.Thread(target = run_experiment_server, args = (nodeid, client, config_object) )
+                t = threading.Thread(target = run_experiment_server, args = (nodeid, client, config_object, server_resources[str(i)]) )
                 thread_list.append(t)
                 client_handlers.append(client)
                 nodeid += 1
@@ -271,7 +279,7 @@ def experiment(config_object, step = 'all'):
             thread.start()
 
         print "waiting for servers to start"
-        sleep(60)
+        sleep(120)
 
     if step.find('all') >= 0 or step.find('run_clients') >= 0:
         nodeid = num_replicas
@@ -298,7 +306,7 @@ def experiment(config_object, step = 'all'):
             print "server ", i, " running at host? ", servers[str(i)], ": ", clients_running
 
         # copy over logs from host
-        for host in serverips + clientips:
+        for host in set(serverips + clientips):
             exec_local_cmd("scp %s:%s %s" % (host, "/dev/shm/*.log", data_dir))
 
         # write experiment config among log files
@@ -310,7 +318,7 @@ def experiment(config_object, step = 'all'):
         os.system("rm -f latest_rslt; ln -sf %s latest_rslt" % (data_dir))
 
     if step.find('all') >= 0 or step.find("kill") >= 0:
-        for host in serverips + clientips:
+        for host in set(serverips + clientips):
             ssh_client = setup_sshclient(host)
             print "Tearing down remote " + str(host)
             teardown_remote_env(ssh_client)

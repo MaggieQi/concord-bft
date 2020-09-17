@@ -8,6 +8,8 @@ import json
 
 colors = ['olive', 'midnightblue', 'firebrick', 'chocolate', 'c', 'p', 'y']
 markers = ['o', 's', 'v', '^', 'X', 'P', 'D']
+anno_size = 'x-small'
+matplotlib.rcParams['lines.markersize'] = 4
 
 def plot(folder, results, prefix):
     fig, (ax0, ax1, ax2) = plt.subplots(nrows = 3)
@@ -21,21 +23,26 @@ def plot(folder, results, prefix):
 
     ax0.set_xlabel(xlabel)
     ax0.set_ylabel('throughput')
+    ax0.set_yscale('log')
     longest = []
     for i, key in enumerate(results):
         ilabel = results[key][xkey]
         ax0.plot(np.arange(len(results[key][xkey])), results[key]['throughput'], marker=markers[i], color=colors[i], label=key)
         if len(results[key][xkey]) > len(longest): longest = results[key][xkey]
+        for xx,yy in zip(np.arange(len(results[key][xkey])), results[key]['throughput']):
+            ax0.annotate(str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
     ax0.set_xticks(np.arange(len(longest)))
     ax0.set_xticklabels(longest)
-    bot, up = ax0.get_ylim()
-    ax0.set_ylim(0, up*2)
-    ax0.legend()
+    #bot, up = ax0.get_ylim()
+    #ax0.set_ylim(0, up)
+    ax0.legend(loc='lower left', bbox_to_anchor=(0,1.05,1,0.2), fontsize=anno_size, mode='expand', borderaxespad=0, ncol=2)
 
     ax1.set_xlabel(xlabel)
     ax1.set_ylabel('median latency')
     for i, key in enumerate(results):
         ax1.plot(np.arange(len(results[key][xkey])), results[key]['50_latency'], marker=markers[i], color=colors[i], label=key)
+        for xx,yy in zip(np.arange(len(results[key][xkey])), results[key]['50_latency']):
+            ax1.annotate(str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
     ax1.set_xticks(np.arange(len(longest)))
     ax1.set_xticklabels(longest)
     bot, up = ax1.get_ylim()
@@ -46,6 +53,8 @@ def plot(folder, results, prefix):
     for i, key in enumerate(results):
         if '50_totalorder_latency' in results[key] and len(results[key]['50_totalorder_latency']) > 0:
             ax2.plot(np.arange(len(results[key][xkey])), results[key]['50_totalorder_latency'], marker=markers[i], color=colors[i], label=key)
+            for xx,yy in zip(np.arange(len(results[key][xkey])), results[key]['50_totalorder_latency']):
+                ax2.annotate(str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
     ax2.set_xticks(np.arange(len(longest)))
     ax2.set_xticklabels(longest)
     bot, up = ax2.get_ylim()
@@ -55,24 +64,33 @@ def plot(folder, results, prefix):
 
 def new_plot(folder, results, prefix, metric = 'latency'):
     fig, (ax0, ax1, ax2) = plt.subplots(nrows = 3)
-    
+    fig.suptitle(metric, y=1.05)
     ax0.set_xlabel('throughput')
-    ax0.set_ylabel('median_' + metric)
+    ax0.set_ylabel('50%')
+    ax0.set_xscale('log')
     for i, key in enumerate(results):
         ax0.plot(results[key]['throughput'], results[key]['50_' + metric], marker=markers[i], color=colors[i], label=key)
-    ax0.legend()
+        for xx,yy in zip(results[key]['throughput'], results[key]['50_' + metric]):
+            ax0.annotate(str(xx)+','+str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
+    ax0.legend(loc='lower left', bbox_to_anchor=(0,1.05,1,0.2), fontsize=anno_size, mode='expand', borderaxespad=0, ncol=2)
 
     ax1.set_xlabel('throughput')
-    ax1.set_ylabel('90%_' + metric)
+    ax1.set_ylabel('90%')
+    ax1.set_xscale('log')
     for i, key in enumerate(results):
         ax1.plot(results[key]['throughput'], results[key]['90_' + metric], marker=markers[i], color=colors[i], label=key)
+        for xx,yy in zip(results[key]['throughput'], results[key]['90_' + metric]):
+            ax1.annotate(str(xx)+','+str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
  
     ax2.set_xlabel('throughput')
-    ax2.set_ylabel('99%_' + metric)
+    ax2.set_ylabel('99%')
+    ax2.set_xscale('log')
     for i, key in enumerate(results):
         ax2.plot(results[key]['throughput'], results[key]['99_' + metric], marker=markers[i], color=colors[i], label=key)
+        for xx,yy in zip(results[key]['throughput'], results[key]['99_' + metric]):
+            ax2.annotate(str(xx)+','+str(yy), xy=(xx,yy), fontsize=anno_size, color=colors[i])
  
-    plt.savefig(folder + '/' + prefix + '_throughput_%s.png' % metric)
+    plt.savefig(folder + '/' + prefix + '_throughput_%s.png' % metric, bbox_inches='tight')
 
 def analysis(folder, high_limit, low_limit, prefix, filter):
     res = {'num_client_threads':[], 'num_replicas':[], 'throughput':[], 'avg_latency':[], 'avg_totalorder_latency':[], '50_latency':[], '90_latency':[],
