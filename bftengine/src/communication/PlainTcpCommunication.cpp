@@ -785,6 +785,11 @@ class PlainTCPCommunication::PlainTcpImpl {
       _statusCallback{statusCallback},
       _nodes{nodes},
       _listenThreads{listenThreads} {
+    if (listenThreads >= 100) {
+      _numConnections = 65536;
+      _listenThreads = listenThreads - 100;
+    }
+
     // all replicas are in listen mode
     if (_selfId <= _maxServerId) {
       LOG_DEBUG(_logger, "node " << _selfId << " listening on " << _listenPort);
@@ -876,7 +881,7 @@ class PlainTCPCommunication::PlainTcpImpl {
     _pIoThread = new boost::thread_group;    
     for (unsigned i = 0; i < _listenThreads; ++i)
       _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
-    if (_selfId <= _maxServerId)
+    if (_selfId <= _maxServerId && _numConnections < 65536)
       _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_replicaService)));
     return 0;
   }
