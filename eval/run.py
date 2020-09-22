@@ -140,10 +140,11 @@ def setup_remote_env(client, host, do_install, network):
             #exec_remote_cmd(client, "sudo sysctl -w net.core.rmem_max=41943040; sudo sysctl -w net.core.wmem_max=41943040; sudo sysctl -w net.core.netdev_max_backlog=4000;")
             exec_remote_cmd(client, "cd %s; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release ..; make -j 16;" % (repo_name))
     
-    copyfiles = ["bftengine/src/communication/PlainTcpCommunication.cpp", "bftengine/src/bftengine/ReplicaImp.cpp", "logging/include/Logging.hpp"]
+    #copyfiles = ["bftengine/src/communication/PlainTcpCommunication.cpp", "bftengine/src/bftengine/ReplicaImp.cpp", "logging/include/Logging.hpp"]
+    copyfiles = []
     for copyfile in copyfiles:
         exec_local_cmd("scp ../" + copyfile + " " + host + ":" + get_homedir() + '/' + repo_name + '/' + copyfile)
-    #exec_remote_cmd(client, "cd %s/build; make clean; make -j 16;" % (repo_name))
+    if len(copyfiles) > 0: exec_remote_cmd(client, "cd %s/build; make clean; make -j 16;" % (repo_name))
 
     exec_local_cmd("scp private_replica* " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_local_cmd("scp test_config.txt " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
@@ -163,7 +164,7 @@ def run_experiment_server(hostid, client, config_object, threads):
     base_dir = "concord-bft"
     replica_id = hostid
     maxBatchSize = int(config_object["replica_batchsize"])
-    threads = 8
+    threads = 108
     if config_object["system"] == "concord":
         commitDuration = 0
     else:

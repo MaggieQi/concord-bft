@@ -18,6 +18,7 @@
 #include <string.h>
 #include <chrono>
 #include <mutex>
+#include <vector>
 
 #if defined(_WIN32)
 #include <windows.h>
@@ -43,6 +44,7 @@
 #include <boost/make_unique.hpp>
 #include <boost/asio/deadline_timer.hpp>
 #include <boost/date_time/posix_time/posix_time_duration.hpp>
+#include <boost/noncopyable.hpp>
 
 class AsyncTcpConnection;
 
@@ -73,6 +75,57 @@ enum MessageType : uint16_t {
 enum ConnType : uint8_t {
   Incoming,
   Outgoing
+};
+
+
+class io_service_pool
+  : private boost::noncopyable
+{
+public:
+  explicit io_service_pool(std::size_t pool_size): num_threads_(pool_size), next_io_service_(0) {
+    for (std::size_t i = 0; i < pool_size; i++) {
+      io_service_ptr io_(new io_service);
+      work_ptr w_(new boost::asio::io_service::work(*io_));
+      io_services_.push_back(io_);
+      work_.push_back(w_);
+    }
+  }
+
+  void run() {
+    for (std::size_t i = 0; i < num_threads_; ++i)
+      threads_.create_thread(boost::bind(&boost::asio::io_service::run, io_services_[i]));
+      //threads_.create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), io_services_[i]));
+  }
+
+  void stop() {
+    for (std::size_t i = 0; i < io_services_.size(); ++i)
+      io_services_[i]->stop();
+
+    threads_.join_all();
+  }
+
+  boost::asio::io_service& get_io_service() {
+    io_service& io_ = *io_services_[next_io_service_++];
+    if (next_io_service_ == io_services_.size()) next_io_service_ = 0;
+    return io_;
+  }
+
+private:
+  typedef boost::shared_ptr<boost::asio::io_service> io_service_ptr;
+  typedef boost::shared_ptr<boost::asio::io_service::work> work_ptr;
+
+  /// The pool of io_services.
+  std::vector<io_service_ptr> io_services_;
+
+  /// The work that keeps the io_services running.
+  std::vector<work_ptr> work_;
+
+  boost::thread_group threads_;
+
+  std::size_t num_threads_;
+
+  /// The next io_service to use for a connection.
+  std::size_t next_io_service_;
 };
 
 /** this class will handle single connection using boost::make_shared idiom
@@ -683,13 +736,12 @@ class PlainTCPCommunication::PlainTcpImpl {
       ("concord-bft.tcp");
 
   unique_ptr<tcp::acceptor> _pAcceptor;
-  //std::thread *_pIoThread = nullptr;
   boost::thread_group *_pIoThread = nullptr;
 
   NodeNum _selfId;
   IReceiver *_pReceiver;
 
-  io_service _service;
+  io_service_pool _service;
   io_service _replicaService;
   uint16_t _listenPort;
   string _listenIp;
@@ -698,8 +750,7 @@ class PlainTCPCommunication::PlainTcpImpl {
   UPDATE_CONNECTIVITY_FN _statusCallback = nullptr;
   recursive_mutex _connectionsGuard;
   NodeMap _nodes;
-  uint32_t _listenThreads;
-  uint32_t _numConnections = 0;
+  uint32_t _numConnections;
 
   void on_async_connection_error(NodeNum peerId) {
     LOG_ERROR(_logger, "to: " << peerId);
@@ -738,7 +789,7 @@ class PlainTCPCommunication::PlainTcpImpl {
     LOG_TRACE(_logger, "enter, node: " << _selfId);
 
     auto conn = AsyncTcpConnection::
-    create((_numConnections++ < _maxServerId)? &_replicaService: &_service,
+    create((_numConnections++ < _maxServerId)? &_replicaService: &(_service.get_io_service()),
            std::bind(
                &PlainTcpImpl::on_async_connection_error,
                this,
@@ -778,23 +829,20 @@ class PlainTCPCommunication::PlainTcpImpl {
                UPDATE_CONNECTIVITY_FN statusCallback,
                uint32_t listenThreads) :
       _selfId{selfNodeId},
+      _service{listenThreads % 100},
       _listenPort{listenPort},
       _listenIp{listenIp},
       _bufferLength{bufferLength},
       _maxServerId{maxServerId},
       _statusCallback{statusCallback},
       _nodes{nodes},
-      _listenThreads{listenThreads} {
-    if (listenThreads >= 100) {
-      _numConnections = 65536;
-      _listenThreads = listenThreads - 100;
-    }
+      _numConnections{listenThreads >= 100? 65536 : 0 } {
 
     // all replicas are in listen mode
     if (_selfId <= _maxServerId) {
       LOG_DEBUG(_logger, "node " << _selfId << " listening on " << _listenPort);
       tcp::endpoint ep(address::from_string(_listenIp), _listenPort);
-      _pAcceptor = boost::make_unique<tcp::acceptor>(_service, ep);
+      _pAcceptor = boost::make_unique<tcp::acceptor>(_service.get_io_service(), ep);
       _pAcceptor->set_option(boost::asio::ip::tcp::acceptor::reuse_address(true));
       start_accept();
     } else // clients dont need to listen
@@ -807,7 +855,7 @@ class PlainTCPCommunication::PlainTcpImpl {
       if (it->first < _selfId && it->first <= maxServerId) {
         auto conn =
             AsyncTcpConnection::
-            create(&_service,
+            create(&(_service.get_io_service()),
                    std::bind(
                        &PlainTcpImpl::on_async_connection_error,
                        this,
@@ -871,16 +919,8 @@ class PlainTCPCommunication::PlainTcpImpl {
     if (_pIoThread)
       return 0; // running
 
-    /*  
-    _pIoThread =
-        new std::thread(std::bind
-                            (static_cast<size_t(boost::asio::io_service::*)()>(
-                                 &boost::asio::io_service::run),
-                             std::ref(_service)));
-    */
     _pIoThread = new boost::thread_group;    
-    for (unsigned i = 0; i < _listenThreads; ++i)
-      _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_service)));
+    _service.run();
     if (_selfId <= _maxServerId && _numConnections < 65536)
       _pIoThread->create_thread(std::bind(static_cast<size_t(boost::asio::io_service::*)()>(&boost::asio::io_service::run), std::ref(_replicaService)));
     return 0;
@@ -897,7 +937,6 @@ class PlainTCPCommunication::PlainTcpImpl {
     _service.stop();
     _replicaService.stop();
 
-    //_pIoThread->join();
     _pIoThread->join_all();
 
     _connections.clear();
