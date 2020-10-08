@@ -39,7 +39,6 @@
 
 
 
-
 namespace bftEngine
 {
 	namespace impl
@@ -67,6 +66,10 @@ namespace bftEngine
 
 		using PtrToMetaMsgHandler = void (ReplicaImp::*)(MessageBase* msg);
 
+                struct ClientRequestCmp
+		{
+			bool operator() (ClientRequestMsg* a, ClientRequestMsg* b) { return a->timeStamp() > b->timeStamp(); }
+		};
 
 		class ReplicaImp : public InternalReplicaApi, public IReplicaForStateTransfer
 		{
@@ -143,6 +146,7 @@ namespace bftEngine
 			SeqNum maxSeqNumTransferredFromPrevViews;
 
 			// requests queue (used by the primary)
+			//std::priority_queue<ClientRequestMsg*, std::vector<ClientRequestMsg*>, ClientRequestCmp> requestsQueueOfPrimary; // only used by the primary
 			std::queue<ClientRequestMsg*> requestsQueueOfPrimary; // only used by the primary
 
 			// bounded log used to store information about SeqNums in the range (lastStableSeqNum,lastStableSeqNum + kWorkWindowSize]
@@ -215,8 +219,8 @@ namespace bftEngine
 			uint16_t maxBatchSize;
             uint64_t commitDuration;
 			uint64_t maxCommitDuration;
-            uint64_t localStablePoint;
-			uint64_t localNextStablePoint;
+			uint64_t localStablePoint;
+	                uint64_t localNextStablePoint;
 			int64_t timeskew;
             std::map<std::pair<uint16_t, uint64_t>, ClientRequestMsg*> localCommitSet;
 			std::map<std::pair<uint16_t, uint64_t>, Time> reqTime;

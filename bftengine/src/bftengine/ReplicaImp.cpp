@@ -667,7 +667,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(0);
+							uint64_t dt = (uint64_t)(maxBatchSize*1000); //commitDuration
 							if (getMonotonicTime() <timestamp - dt)
 								timeskew = timestamp - dt - getMonotonicTime();
 							else
@@ -675,7 +675,7 @@ namespace bftEngine
 							LOG_INFO_F(GL, "CQDEBUG:TimeSkew:%" PRId64 "", timeskew);
 						}
 						
-						tryToSendStablePoints();
+						//tryToSendStablePoints();
 					}
 					//LOG_INFO_F(GL, "NewClientRequestMsg is added!");
 					return;
@@ -734,11 +734,14 @@ namespace bftEngine
 			PrePrepareMsg *pp = new PrePrepareMsg(myReplicaId, curView, primaryLastUsedSeqNum, firstPath, false);
 
 			ClientRequestMsg* nextRequest = requestsQueueOfPrimary.front();
-			while (nextRequest != nullptr && nextRequest->size() <= pp->remainingSizeForRequests())
+			ClientRequestMsg reqMsg(nextRequest->clientProxyId(), nextRequest->isReadOnly(), nextRequest->requestSeqNum(), DIGEST_SIZE, nextRequest->digest());
+			while (nextRequest != nullptr && reqMsg.size() <= pp->remainingSizeForRequests())
 			{
 				if (clientsManager->noPendingAndRequestCanBecomePending(nextRequest->clientProxyId(), nextRequest->requestSeqNum()))
 				{
-					pp->addRequest(nextRequest->body(), nextRequest->size());
+					reqMsg.reset(nextRequest->clientProxyId(), nextRequest->isReadOnly(), nextRequest->requestSeqNum(), nextRequest->digest());
+					pp->addRequest(reqMsg.body(), reqMsg.size());
+					//pp->addRequest(nextRequest->body(), nextRequest->size());
 					clientsManager->addPendingRequest(nextRequest->clientProxyId(), nextRequest->requestSeqNum());
 				}
 				delete nextRequest;
@@ -2626,8 +2629,8 @@ namespace bftEngine
 				executeReadWriteRequests();
 
 				if (isCurrentPrimary() && !requestsQueueOfPrimary.empty()) {
-					if (commitDuration > 0) tryToSendStablePoints();
-				    else tryToSendPrePrepareMsg();
+					if (commitDuration == 0) tryToSendPrePrepareMsg();
+					//else tryToSendStablePoints();
 				}
 			}
 
@@ -2718,8 +2721,8 @@ namespace bftEngine
 			if (currentViewIsActive() && !stateTransfer->isCollectingState()) // TODO(GG): TBD
 			{
 				if (currentPrimary() == myReplicaId) {
-					if (commitDuration > 0) tryToSendStablePoints();
-				    else tryToSendPrePrepareMsg();
+					if (commitDuration == 0) tryToSendPrePrepareMsg();
+					//else tryToSendStablePoints();
 				}
 			}
 		}
@@ -3519,6 +3522,7 @@ namespace bftEngine
 				bool newMsg = false;
 			    while (!newMsg)
 			    {
+				    if (timeskew != 0) tryToSendStablePoints();
 				    newMsg = orderingMsgsStorage.pop(absMsg, externalMsg, timersResolution);
 			    }
 
@@ -3807,8 +3811,8 @@ namespace bftEngine
 			}	
 	
 			if (isCurrentPrimary() && requestsQueueOfPrimary.size() > 0) {
-				if (commitDuration > 0) tryToSendStablePoints();
-				else tryToSendPrePrepareMsg(true);
+				if (commitDuration == 0) tryToSendPrePrepareMsg(true);
+				//else tryToSendStablePoints();
 			}
 		}
 

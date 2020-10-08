@@ -39,6 +39,8 @@ namespace bftEngine
 
 			ClientRequestMsg(ClientRequestMsg* msg);
 
+			void reset(NodeIdType sender, bool isReadOnly, uint64_t reqSeqNum, const char* request);
+
 			uint32_t maxRequestLength() const { return internalStorageSize() - sizeof(ClientRequestMsgHeader); }
 
 			uint16_t clientProxyId() const { return b()->idOfClientProxy; }

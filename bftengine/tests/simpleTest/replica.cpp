@@ -261,7 +261,7 @@ class SimpleAppState : public RequestsHandler {
 
       // We only support the WRITE operation in read-write mode.
       const uint64_t* pReqId = reinterpret_cast<const uint64_t*>(request);
-      test_assert(*pReqId == SET_VAL_REQ, "*preqId != " << SET_VAL_REQ);
+      //test_assert(*pReqId == SET_VAL_REQ, "*preqId != " << SET_VAL_REQ);
 
       // The value to write is the second eight bytes of the request.
       const uint64_t* pReqVal = (pReqId + 1);

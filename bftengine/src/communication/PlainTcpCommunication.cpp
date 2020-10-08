@@ -855,7 +855,7 @@ class PlainTCPCommunication::PlainTcpImpl {
       if (it->first < _selfId && it->first <= maxServerId) {
         auto conn =
             AsyncTcpConnection::
-            create(&(_service.get_io_service()),
+            create((_selfId <= _maxServerId && _numConnections++ < _maxServerId)? &_replicaService: &(_service.get_io_service()),
                    std::bind(
                        &PlainTcpImpl::on_async_connection_error,
                        this,
