@@ -247,7 +247,7 @@ int main(int argc, char **argv) {
   ICommunication* comm = bftEngine::CommFactory::create(conf);
 
   SimpleClient* client =
-      (cp.protocol == "archipelago")? SimpleClient::createArchipelagoSimpleClient(comm, id, cp.numOfFaulty, cp.numOfSlow, scp):
+      (cp.protocol == "pompe")? SimpleClient::createPompeSimpleClient(comm, id, cp.numOfFaulty, cp.numOfSlow, scp):
         SimpleClient::createSimpleClient(comm, id, cp.numOfFaulty, cp.numOfSlow, scp);
   comm->Start();
 

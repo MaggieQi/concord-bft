@@ -1,4 +1,4 @@
-#include "ArchipelagoStablePointMsg.hpp"
+#include "PompeStablePointMsg.hpp"
 #include "SysConsts.hpp"
 #include "Logger.hpp"
 

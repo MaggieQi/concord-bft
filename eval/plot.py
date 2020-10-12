@@ -127,8 +127,8 @@ if __name__ == '__main__':
     results = {}
     beta = sys.argv[4].split(',')
     for b in beta:
-        results['Archipelago-C(beta=%s)' % b] =  analysis(sys.argv[1] + '/archipelago/' + sys.argv[2], high_limit, low_limit, sys.argv[2], '_beta_%s_' % b)
-        if len(results['Archipelago-C(beta=%s)' % b]['num_replicas']) == 0: del results['Archipelago-C(beta=%s)' % b]
+        results['Pompe-C(beta=%s)' % b] =  analysis(sys.argv[1] + '/pompe/' + sys.argv[2], high_limit, low_limit, sys.argv[2], '_beta_%s_' % b)
+        if len(results['Pompe-C(beta=%s)' % b]['num_replicas']) == 0: del results['Pompe-C(beta=%s)' % b]
         results['Concord(beta=%s)' % b] = analysis(sys.argv[1] + '/concord/' + sys.argv[2], high_limit, low_limit, sys.argv[2], '_beta_%s_' % b)
         results['Concord(beta=%s)' % b]['50_latency'] = results['Concord(beta=%s)' % b]['50_totalorder_latency']
         results['Concord(beta=%s)' % b]['90_latency'] = results['Concord(beta=%s)' % b]['90_totalorder_latency']

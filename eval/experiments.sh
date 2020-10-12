@@ -1,19 +1,21 @@
-FOLDER=~/archipelago/paper/rslt
+FOLDER=~/pompe/paper/rslt
 protocol=$2
 EXPDIR=$FOLDER/$protocol/$1
 beta=$3
 commit_duration=$4
-
-env=geo
-numclientservers=99
+env=$5
+numclientservers=`grep $env\_client_list generate_config.py | head -n 1 | awk '{n = split($3,s,",");print n;}'`
+numclientservers=$(($numclientservers - 1))
 number_operations=$((200*$beta))
-echo "Set batch size: $beta number of operations: $number_operations"
+threads=8
+echo "Set env:$env commit duration:$commit_duration batch size: $beta number of operations: $number_operations number of clients: $numclientservers"
+
 
 if [ "$env" == "geo" ]; then
     istart=99
     iend=396
 else
-    istart=32
+    istart=2
     iend=64
 fi
  
@@ -26,10 +28,10 @@ if [ "$1" == "client_inc" ]; then
     best_throughput=0.0
     best_latency=100000.0
     for ((i=$istart;i<=$iend;i=i*2)); do
-        if [ "$protocol" == "archipelago" ]; then
-            python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $i
+        if [ "$protocol" == "pompe" ]; then
+            python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $i
         else
-            python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $i
+            python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $i
         fi
         python run.py config/test_servers_$numservers\_clients_$i\_$protocol.json
         python analyze.py latest_rslt/config.json
@@ -63,7 +65,7 @@ elif [ "$1" == "client_inc_result" ]; then
     echo "Calculate $protocol client increase experiment result"
     numservers=4
     for ((i=$istart;i<=$iend;i++)); do
-        dest=$FOLDER/$protocol/$5_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
+        dest=$FOLDER/$protocol/$6/client_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
         if [ ! -f "$dest" ]; then
             continue
         fi
@@ -80,10 +82,10 @@ elif [ "$1" == "server_inc" ]; then
         number_operations=$((200*$beta))
         echo "Set batch size: $beta number of operations: $number_operations"
         for ((j=$istart;j<=$iend;j=j*2)); do
-            if [ "$protocol" == "archipelago" ]; then
-                python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $j
+            if [ "$protocol" == "pompe" ]; then
+                python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $j
             else
-                python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $j
+                python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $j
             fi
             python run.py config/test_servers_$numservers\_clients_$j\_$protocol.json
             python analyze.py latest_rslt/config.json
@@ -101,7 +103,7 @@ elif [ "$1" == "server_inc_result" ]; then
         best_throughput=0
         best_latency=10000000.0
         for ((j=$istart;j<=$iend;j++)); do
-	    dest=$FOLDER/$protocol/$5/server_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
+	    dest=$FOLDER/$protocol/$6/server_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
 	    if [ ! -f "$dest" ]; then
                 continue
             fi
@@ -130,13 +132,13 @@ elif [ "$1" == "server_inc_result" ]; then
         fi
     done
 elif [ "$1" == "single" ]; then
-    numservers=$5
-    numclients=$6
-    exp=$7
-    if [ "$protocol" == "archipelago" ]; then
-        python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $numclients
+    numservers=$6
+    numclients=$7
+    exp=$8
+    if [ "$protocol" == "pompe" ]; then
+        python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $numclients
     else
-        python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $numclients
+        python generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --replica_batchsize=$beta --number_operations=$number_operations $numservers $numservers $numclientservers $numclients
     fi
     python run.py config/test_servers_$numservers\_clients_$numclients\_$protocol.json
     python analyze.py latest_rslt/config.json

@@ -11,7 +11,7 @@
 #include "MessageBase.hpp"
 #include "ReplicasInfo.hpp"
 #include "ClientMsgs.hpp"
-#include "ArchipelagoTimeManager.hpp"
+#include "PompeTimeManager.hpp"
 
 namespace bftEngine
 {

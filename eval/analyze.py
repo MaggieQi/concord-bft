@@ -7,7 +7,7 @@ import json
 import sys
 from optparse import OptionParser
 
-def analyze_archipelago(system_type, data_dir, num_replicas, num_clients, num_operations):
+def generate_result(system_type, data_dir, num_replicas, num_clients, num_operations):
     rslt_object = {}
 
     maxCommit = 0
@@ -109,7 +109,7 @@ def analyze(config_object):
 
     # call the experiment specific analyze function
     rslt_object = {}
-    rslt_object = analyze_archipelago(system_type, data_dir, num_replicas, num_clients, num_operations)
+    rslt_object = generate_result(system_type, data_dir, num_replicas, num_clients, num_operations)
 
     # dump processed results and config
     rslt_object["exp_config"] = config_object

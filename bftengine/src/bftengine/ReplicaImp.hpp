@@ -33,7 +33,7 @@
 #include "Replica.hpp"
 #include "SimpleAutoResetEvent.hpp"
 #include "Metrics.hpp"
-#include "ArchipelagoTimeManager.hpp"
+#include "PompeTimeManager.hpp"
 #include <thread>
 #include <map>
 

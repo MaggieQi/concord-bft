@@ -29,7 +29,7 @@ def setup_sshclient(host):
     client.set_missing_host_key_policy(AutoAddPolicy())
     #client.load_system_host_keys()
     client.load_host_keys(get_homedir() + '/.ssh/known_hosts')
-    print "connection to: " + host
+    print ("connection to: " + host)
     client.connect(host, username=get_username())
     return client
 
@@ -37,23 +37,23 @@ def close_sshclient(client):
     client.close()
 
 def exec_local_cmd(cmd):
-    print("Running local command %s" % (cmd))
+    print ("Running local command %s" % (cmd))
     p = subprocess.Popen(cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.STDOUT)
     global print_cmd_output
     if print_cmd_output:
         for line in p.stdout.readlines():
-            print line.rstrip('\n')
+            print (line.rstrip('\n'))
     retval = p.wait()
     return retval
 
 def exec_remote_cmd(client, cmd):
-    print("Running remote command %s" % (cmd))
+    print ("Running remote command %s" % (cmd))
     _, stdout, stderr = client.exec_command(cmd)
     all_lines = stdout.readlines() + stderr.readlines()
     global print_cmd_output
     if print_cmd_output:
         for line in all_lines:
-            print line.rstrip('\n')
+            print (line.rstrip('\n'))
     return all_lines
 
 def create_dir(dir_name):
@@ -67,7 +67,7 @@ def is_remote_process_running(client, process_name, i, host):
     cmd = "ps -ef | grep %s | grep -v grep | wc -l" % process_name
     log = exec_remote_cmd(client, cmd)
     log = int(log[0])
-    print("%s %d running at host %s? %d" % (process_name, i, host, log))
+    print ("%s %d running at host %s? %d" % (process_name, i, host, log))
     if (log == 0):
         return False
     else:
@@ -83,7 +83,7 @@ def setup_local_logs():
     # create a directory to store log files
     dir_name = "logs/%d_%d_%d/%d_%d_%s" % (now.year, now.month, now.day, now.hour, now.minute, now.second)
     create_dir(dir_name)
-    print("Log directory is %s" % dir_name)
+    print ("Log directory is %s" % dir_name)
 
     return dir_name
 
@@ -114,25 +114,16 @@ def setup_remote_env(client, host, do_install, network):
     exec_remote_cmd(client, "chmod 600 %s/.ssh/id_rsa*" % (get_homedir()))
     exec_remote_cmd(client, "sudo usermod -s /bin/bash %s" % (get_username()))
 
-    # clone the codebase
     repo_name = "concord-bft"
-    git_home = "https://github.com/MaggieQi/concord-bft"
     update_code = False
     if do_install:
-        exec_remote_cmd(client, "sudo apt-get update; sudo apt-get install -y git ntpdate")
-        exec_remote_cmd(client, "rm -rf %s;git clone %s;cd %s;git checkout add_multiple_listenthreads" % (repo_name, git_home, repo_name))
+        exec_local_cmd("rsync -av --delete --exclude='\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
         update_code = True
+    else:
+        exec_local_cmd("rsync -av --exclude='\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
 
     if update_code:
-        exec_remote_cmd(client, "rm -rf %s" % (repo_name))
-        print "Cloing code..."
-        exec_remote_cmd(client, "git clone %s" % (git_home))
-
-        # reset repo
-        exec_remote_cmd(client, "cd %s; git reset --hard; git pull --rebase" % (repo_name))
-        exec_remote_cmd(client, "cd %s; git checkout add_multiple_listenthreads" % (repo_name))
-
         #build code
         if network == 'tcp':
             exec_remote_cmd(client, "cd %s; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release -DBUILD_COMM_TCP_PLAIN=TRUE ..; make -j 16;" % (repo_name))
@@ -140,12 +131,6 @@ def setup_remote_env(client, host, do_install, network):
             #exec_remote_cmd(client, "sudo sysctl -w net.core.rmem_max=41943040; sudo sysctl -w net.core.wmem_max=41943040; sudo sysctl -w net.core.netdev_max_backlog=4000;")
             exec_remote_cmd(client, "cd %s; rm -rf build; mkdir build; cd build; cmake -DCMAKE_BUILD_TYPE=Release ..; make -j 16;" % (repo_name))
     
-    copyfiles = ["bftengine/src/communication/PlainTcpCommunication.cpp", "bftengine/src/bftengine/ReplicaImp.cpp", "bftengine/src/bftengine/ReplicaImp.hpp", "logging/include/Logging.hpp", "bftengine/tests/config/test_comm_config.hpp", "bftengine/src/bftengine/SysConsts.hpp", "bftengine/src/bftengine/ControllerWithSimpleHistory.cpp", "bftengine/src/bftengine/ClientRequestMsg.cpp", "bftengine/src/bftengine/ClientRequestMsg.hpp", "bftengine/tests/simpleTest/replica.cpp", "bftengine/src/bftengine/InternalReplicaApi.hpp", "bftengine/src/bftengine/IncomingMsgsStorage.hpp", "bftengine/src/bftengine/IncomingMsgsStorage.cpp"]
-    if not do_install: copyfiles = []
-    for copyfile in copyfiles:
-        exec_local_cmd("scp ../" + copyfile + " " + host + ":" + get_homedir() + '/' + repo_name + '/' + copyfile)
-    if len(copyfiles) > 0: exec_remote_cmd(client, "cd %s/build; make clean; make -j 16;" % (repo_name))
-
     exec_local_cmd("scp private_replica* " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_local_cmd("scp test_config.txt " + host + ":" + get_homedir() + '/' + repo_name + '/' + get_expdir())
     exec_remote_cmd(client, "sudo ntpdate time.windows.com")
@@ -159,21 +144,22 @@ def teardown_remote_env(client, host):
     exec_remote_cmd(client, cmd)
     
 def run_experiment_server(hostid, client, config_object, threads):
-    print "Running experiment"
+    print ("Running experiment")
 
     base_dir = "concord-bft"
     replica_id = hostid
     maxBatchSize = int(config_object["replica_batchsize"])
+    threads = int(config_object["threads"])
+    commitDuration = int(config_object["commit_duration"])
     if config_object["system"] == "concord":
-        threads = 108
+        threads += 100
         commitDuration = 0
     else:
-        threads = 8
-        commitDuration = int(config_object["commit_duration"])
         if config_object["env"] == "geo":
             maxBatchSize = 400
         else:
             maxBatchSize = 10
+
     #-vc -vct <viewChangeTimeout> -stopseconds <stopSeconds>
     cmd = '''cd %s;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/local/include;
@@ -184,7 +170,7 @@ ulimit -HSn 40960;ulimit -c unlimited;
     exec_remote_cmd(client, cmd)
 
 def run_experiment_client(hostid, client, config_object, host):
-    print "Running experiment on client"
+    print ("Running experiment on client")
 
     base_dir = "concord-bft"
     client_id = hostid
@@ -261,14 +247,14 @@ def experiment(config_object, step = 'all'):
     for i in range(num_servers):
         serverips.append(servers[str(i)])
     #serverips = list(set(serverips))
-    print serverips
+    print (serverips)
 
     # read clients
     clientips = []
     for i in range(num_clients):
         clientips.append(clients[str(i)])
     #clientips = list(set(clientips))
-    print clientips
+    print (clientips)
 
     ssh_client_map = {}
 
@@ -302,7 +288,7 @@ def experiment(config_object, step = 'all'):
         for thread in thread_list:
             thread.start()
 
-        print "waiting for servers to start"
+        print ("waiting for servers to start")
         sleep(120)
 
     if step.find('all') >= 0 or step.find('run_clients') >= 0:
