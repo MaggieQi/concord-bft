@@ -42,7 +42,7 @@ def exec_local_cmd(cmd):
     global print_cmd_output
     if print_cmd_output:
         for line in p.stdout.readlines():
-            print (line.rstrip('\n'))
+            print (line.decode("utf-8").rstrip('\n'))
     retval = p.wait()
     return retval
 
@@ -117,11 +117,11 @@ def setup_remote_env(client, host, do_install, network):
     repo_name = "concord-bft"
     update_code = False
     if do_install:
-        exec_local_cmd("rsync -av --delete --exclude='\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
+        exec_local_cmd("rsync -av --delete --exclude=\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
         exec_remote_cmd(client, "cd %s/eval; ./install_concord_deps.sh" % (repo_name))
         update_code = True
     else:
-        exec_local_cmd("rsync -av --exclude='\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
+        exec_local_cmd("rsync -av --exclude=\'.*\' --exclude=\'build/*\' --exclude=\'eval/*\' --include=\'eval/*.py\' --include=\'eval/*.sh\' " + get_homedir() + "/" + repo_name + "/ " + host + ":" + get_homedir() + "/" + repo_name)
 
     if update_code:
         #build code
@@ -151,14 +151,10 @@ def run_experiment_server(hostid, client, config_object, threads):
     maxBatchSize = int(config_object["replica_batchsize"])
     threads = int(config_object["threads"])
     commitDuration = int(config_object["commit_duration"])
+    commitDelay = 10 if config_object["env"] == "local" else 400
     if config_object["system"] == "concord":
         threads += 100
         commitDuration = 0
-    else:
-        if config_object["env"] == "geo":
-            maxBatchSize = 400
-        else:
-            maxBatchSize = 10
 
     #-vc -vct <viewChangeTimeout> -stopseconds <stopSeconds>
     cmd = '''cd %s;
@@ -166,7 +162,7 @@ export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_P
 cd %s;
 rm core;
 ulimit -HSn 40960;ulimit -c unlimited;
-./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d -threads %d &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", config_object["system"], maxBatchSize, commitDuration, threads, replica_id)
+./server -id %d -c %d -r %d -cf %s -a %s -dc 1 -mb %d -commit %d -threads %d -env %s -commitdelay %d &> /dev/shm/replica%d.log &''' %(base_dir, get_expdir(), replica_id, config_object["num_client_threads"], config_object["num_replicas"], "test_config.txt", config_object["system"], maxBatchSize, commitDuration, threads, config_object["env"], commitDelay, replica_id)
     exec_remote_cmd(client, cmd)
 
 def run_experiment_client(hostid, client, config_object, host):
@@ -240,14 +236,14 @@ def experiment(config_object, step = 'all'):
 
     per_client_threads = calc_per_node_threads(num_client_threads, num_clients, client_resources)
     per_server_threads = calc_per_node_threads(num_replicas, num_servers, server_resources)
-    print ("client threads:%r" % per_client_threads)
-    print ("server threads:%r" % per_server_threads)
+    
     # read servers
     serverips = []
     for i in range(num_servers):
         serverips.append(servers[str(i)])
     #serverips = list(set(serverips))
     print (serverips)
+    print ("server threads:%r" % per_server_threads)
 
     # read clients
     clientips = []
@@ -255,6 +251,7 @@ def experiment(config_object, step = 'all'):
         clientips.append(clients[str(i)])
     #clientips = list(set(clientips))
     print (clientips)
+    print ("client threads:%r" % per_client_threads)
 
     ssh_client_map = {}
 

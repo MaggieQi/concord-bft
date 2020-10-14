@@ -217,7 +217,8 @@ namespace bftEngine
 			int viewChangeTimerMilli;
 
 			uint16_t maxBatchSize;
-            uint64_t commitDuration;
+			uint64_t commitDelay;
+			uint64_t commitDuration;
 			uint64_t maxCommitDuration;
 			uint64_t localStablePoint;
 	                uint64_t localNextStablePoint;

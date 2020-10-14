@@ -667,7 +667,7 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(maxBatchSize*1000); //commitDuration
+							uint64_t dt = commitDelay; //commitDuration
 							if (getMonotonicTime() <timestamp - dt)
 								timeskew = timestamp - dt - getMonotonicTime();
 							else
@@ -675,7 +675,7 @@ namespace bftEngine
 							LOG_INFO_F(GL, "CQDEBUG:TimeSkew:%" PRId64 "", timeskew);
 						}
 						
-						//tryToSendStablePoints();
+						tryToSendStablePoints();
 					}
 					//LOG_INFO_F(GL, "NewClientRequestMsg is added!");
 					return;
@@ -3255,6 +3255,7 @@ namespace bftEngine
                         metricsTimer_{ nullptr },
 			viewChangeTimerMilli{ 0 },
 			maxBatchSize{ config.maxBatchSize },
+			commitDelay{ static_cast<std::uint64_t>(config.commitDelayMillisec) * 1000 },
 			commitDuration{ static_cast<std::uint64_t>(config.commitTimerMillisec) * 1000 },
 			maxCommitDuration{ static_cast<std::uint64_t>(config.commitTimerMillisec) * 1000 },
 			localStablePoint{ 0 },
@@ -3378,6 +3379,13 @@ namespace bftEngine
 			checkpointsLog = new SequenceWithActiveWindow<kWorkWindowSize + checkpointWindowSize, checkpointWindowSize, SeqNum, CheckpointInfo, CheckpointInfo>(0, (InternalReplicaApi*)this);
 
 			// create controller . TODO(GG): do we want to pass the controller as a parameter ?
+			if (config.env == "local") {
+				defaultTimeToStartSlowPathMilli = 150;
+				minTimeToStartSlowPathMilli = 20;
+			} else {
+				defaultTimeToStartSlowPathMilli = 800;
+				minTimeToStartSlowPathMilli = 100;
+			}
                         controller = new ControllerWithSimpleHistory(cVal, fVal, myReplicaId, curView, primaryLastUsedSeqNum);
 
 			statusReportTimer = new Timer(timersScheduler, (uint16_t)statusReportTimerMilli, statusTimerHandlerFunc, (InternalReplicaApi*)this);
@@ -3522,7 +3530,7 @@ namespace bftEngine
 				bool newMsg = false;
 			    while (!newMsg)
 			    {
-				    if (timeskew != 0) tryToSendStablePoints();
+				    //if (timeskew != 0) tryToSendStablePoints();
 				    newMsg = orderingMsgsStorage.pop(absMsg, externalMsg, timersResolution);
 			    }
 

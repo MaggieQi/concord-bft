@@ -17,14 +17,14 @@ def generate_result(system_type, data_dir, num_replicas, num_clients, num_operat
         for j in range(0, num_replicas):
             replica_log = '%s/replica%d.log' % (data_dir, j)
             if not os.path.exists(replica_log): continue
-            res = subprocess.check_output("cat %s | grep TotalOrderCommit | awk \'{split($8, s, \"=\");print s[2];}\'" % (replica_log), shell = True).rstrip('\n').split('\n')
+            res = subprocess.check_output("cat %s | grep TotalOrderCommit | awk \'{split($8, s, \"=\");print s[2];}\'" % (replica_log), shell = True).decode("utf-8").rstrip('\n').split('\n')
             if len(res) < 2: continue
             res = [float(v) for v in res if len(v) > 0]
             if len(res) > maxCommit: maxCommit = len(res)
             res.sort()
             print ("server%d avg:%f 50:%f 90:%f 99:%f" % (j, sum(res)/len(res), res[len(res)//2], res[len(res)*9//10], res[len(res)*99//100]))
             ll += res
-            batch_res = subprocess.check_output("cat %s | grep TotalOrderCommit | awk \'{split($7, s, \"=\");print s[2];}\'" % (replica_log), shell = True).rstrip('\n').split('\n')
+            batch_res = subprocess.check_output("cat %s | grep TotalOrderCommit | awk \'{split($7, s, \"=\");print s[2];}\'" % (replica_log), shell = True).decode("utf-8").rstrip('\n').split('\n')
             batch_res = [int(v) for v in batch_res if len(v) > 0]
             t = 0
             while t < len(batch_res):
@@ -58,7 +58,7 @@ def generate_result(system_type, data_dir, num_replicas, num_clients, num_operat
     for j in range(num_replicas, num_replicas + num_clients):
         client_log = '%s/client%d.log' % (data_dir, j)
         if not os.path.exists(client_log): continue
-        res = subprocess.check_output("cat %s | grep duration | awk \'{split($16, s, \"=\");split(s[2], t, \")\");print t[1];}\'" % (client_log), shell = True).rstrip('\n').split('\n')
+        res = subprocess.check_output("cat %s | grep duration | awk \'{split($16, s, \"=\");split(s[2], t, \")\");print t[1];}\'" % (client_log), shell = True).decode("utf-8").rstrip('\n').split('\n')
         res = [float(v) for v in res]
         res.sort()
         print ("client%d avg:%f 50:%f 90:%f 99:%f" % (j, sum(res)/len(res), res[len(res)//2], res[len(res)*9//10], res[len(res)*99//100]))
@@ -81,8 +81,8 @@ def generate_result(system_type, data_dir, num_replicas, num_clients, num_operat
     for j in range(num_replicas, num_replicas + num_clients):
         client_log = '%s/client%d.log' % (data_dir, j)
         if not os.path.exists(client_log): continue
-        begin = subprocess.check_output("cat %s | grep Starting | head -n 1 | awk \'{print $3}\'" %(client_log), shell = True).rstrip('\n')
-        end = subprocess.check_output("cat %s | grep INFO | tail -n 1 | awk \'{print $3}\'" %(client_log), shell = True).rstrip('\n')
+        begin = subprocess.check_output("cat %s | grep Starting | head -n 1 | awk \'{print $3}\'" %(client_log), shell = True).decode("utf-8").rstrip('\n')
+        end = subprocess.check_output("cat %s | grep INFO | tail -n 1 | awk \'{print $3}\'" %(client_log), shell = True).decode("utf-8").rstrip('\n')
         print ('client%d %s %s' % (j, str(begin), str(end)))
         beginT = datetime.datetime.strptime(str(begin), '%H:%M:%S.%f')
         endT = datetime.datetime.strptime(str(end), '%H:%M:%S.%f')

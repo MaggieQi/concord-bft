@@ -19,8 +19,8 @@ namespace bftEngine
 	namespace impl
 	{
 
-		static const uint32_t defaultTimeToStartSlowPathMilli = 800; //  150,800;
-		static const uint32_t minTimeToStartSlowPathMilli = 100; // 20,100;
+		uint32_t defaultTimeToStartSlowPathMilli = 150; //  150,800;
+		uint32_t minTimeToStartSlowPathMilli = 20; // 20,100;
 		static const uint32_t maxTimeToStartSlowPathMilli = 2000;
 		static const float maxUpdateInTimeToStartSlowPath = 0.20F;
 
