@@ -79,10 +79,11 @@ elif [ "$1" == "client_inc_result" ]; then
     done
 elif [ "$1" == "server_inc" ]; then
     echo "RUN $protocol server increase experiment"
+    origbeta=$beta
     for i in 1 3 5 10 20 33; do
         numservers=$(($i*3+1))
 	if [ "$dec_beta" == "1" ]; then
-	    beta=$(($beta*4/$numservers))
+	    beta=$(($origbeta*4/$numservers))
             number_operations=$(($op_factor * $beta))
             echo "Set batch size: $beta number of operations: $number_operations"
 	fi
@@ -101,10 +102,11 @@ elif [ "$1" == "server_inc" ]; then
 elif [ "$1" == "server_inc_result" ]; then
     echo "Calculate $protocol server increase experiment result"
     rm -rf $EXPDIR/*_beta_$beta\_*
+    origbeta=$beta
     for i in 1 3 5 10 20 33; do
         numservers=$(($i*3+1))
 	if [ "$dec_beta" == "1" ]; then
-	    beta=$(($beta*4/$numservers))
+	    beta=$(($origbeta*4/$numservers))
 	fi
         best=''
         best_throughput=0
