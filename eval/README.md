@@ -73,6 +73,7 @@ Note the results will contain throughput, 50_latency (ordering latency) and 50_t
 |     | Pompe-C (beta = 200)        |    249221.0        | 18.0(o) 74.0\(c\)  | step1.4    |
 | geo | Concord (beta = 800)        |      1461.0        |      616.0         | step1.5    |
 |     | Pompe-C (beta = 200)        |    172774.0        |325.0(o) 1415.0\(c\)| step1.6    |
+
 In claim1, we say that Pompe achieves higher throughput than baseline (1415.0 > 40.0; 249221.0 > 6633.0) at the cost of increased latency (67.0 > 53.0). But latencies are comparable (67.0 vs. 67.0) when batching commands (beta is the batch size).
 
 * 6.2 Scalability
@@ -91,9 +92,8 @@ python plot.py ~/pompe/paper/rslt server_inc_result .
 
 We conduct the expriments of Figure 6 in our new cloud instance and below is the raw data. The plot of this table looks basically the same as Figure 6 in our submission.
 
-|        |  <td colspan=2>concord beta = 800         | <td colspan=2>pompe beta = 200                          | <td colspan=2>pompe beta = 800 / n                      |
-|#machine| throughput (cmd/s)  | median latency (ms) | throughput (cmd/s)       | median ordering latency (ms) | throughput (cmd/s)       | median ordering latency (ms) |
-|--------|---------------------|---------------------|--------------------------|------------------------------|--------------------------|------------------------------
+|#machine| concord beta = 800 throughput (cmd/s)  | median latency (ms) | pompe beta = 200 throughput (cmd/s)       | median ordering latency (ms) | pompe beta = 800 / n throughput (cmd/s)       | median ordering latency (ms) |
+|--------|---------------------|---------------------|--------------------------|------------------------------|--------------------------|------------------------------|
 | n=4    |  1466.0             |        634.0        |     172774.0             |             325.0            |     172774.0             |             325.0            |
 | n=10   |  1515.0             |        728.0        |     121466.0             |             557.0            |     39773.0              |             554.0            |
 | n=16   |  1540.0             |        787.0        |     72400.0              |             836.0            |     18250.0              |             673.0            |
