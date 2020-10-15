@@ -40,7 +40,7 @@ namespace bftEngine
 	   		uint16_t clientId, uint16_t fVal, uint16_t cVal,
 	   		SimpleClientParams p);
 		
-		static SimpleClient* createArchipelagoSimpleClient(ICommunication* communication,
+		static SimpleClient* createPompeSimpleClient(ICommunication* communication,
 	   		uint16_t clientId, uint16_t fVal, uint16_t cVal,
 	   		SimpleClientParams p);
 

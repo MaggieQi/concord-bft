@@ -61,5 +61,49 @@ namespace bftEngine
 			queue<InternalMessage*>* ptrThreadLocalQueueForInternalMessages;
 		};
 
+                struct MessageBaseCmp
+		{
+			bool operator() (MessageBase* a, MessageBase* b);
+		};
+
+
+		class PriorityIncomingMsgsStorage
+		{
+		public:
+
+			const uint64_t minTimeBetweenOverflowWarningsMilli = 5 * 1000; // 5 seconds
+
+			PriorityIncomingMsgsStorage(uint16_t maxNumOfPendingExternalMsgs);
+			~PriorityIncomingMsgsStorage();
+
+			void pushExternalOrderingMsg(MessageBase* m); // can be called by any thread    
+			void pushExternalMsg(MessageBase* m); // can be called by any thread
+			void pushInternalMsg(InternalMessage* m); // can be called by any thread
+
+			bool pop(void*& item, bool& external, std::chrono::milliseconds timeout); // should only be called by the main thread
+			bool empty(); // should only be called by the main thread. 
+
+		protected:
+
+			bool popThreadLocal(void*& item, bool& external);
+
+			const uint16_t maxNumberOfPendingExternalMsgs;
+
+			std::mutex lock;
+			std::condition_variable condVar;
+
+			// new messages are pushed to ptrProtectedQueue.... ; Protected by lock 
+			std::priority_queue<MessageBase*, std::vector<MessageBase*>, MessageBaseCmp>* ptrProtectedQueueForExternalMessages;
+			queue<InternalMessage*>* ptrProtectedQueueForInternalMessages;
+
+			// time of last queue overflow  Protected by lock 
+			Time lastOverflowWarning;
+
+			// messages are fetched from ptrThreadLocalQueue... ; should only be accessed by the main thread
+			std::priority_queue<MessageBase*, std::vector<MessageBase*>, MessageBaseCmp>* ptrThreadLocalQueueForExternalMessages;
+			queue<InternalMessage*>* ptrThreadLocalQueueForInternalMessages;
+		};
+
+
 	}
 }

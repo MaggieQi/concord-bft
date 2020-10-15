@@ -20,6 +20,8 @@ namespace bftEngine
 {
 	namespace impl
 	{
+		extern uint32_t defaultTimeToStartSlowPathMilli;
+		extern uint32_t minTimeToStartSlowPathMilli;
 
 		class ControllerWithSimpleHistory : public ControllerBase
 		{

@@ -95,6 +95,7 @@ struct PlainUdpConfig : BaseCommConfig {
 
 struct PlainTcpConfig : BaseCommConfig {
   int32_t maxServerId;
+  int32_t listenThreads;
 
   PlainTcpConfig(std::string ip,
                  uint16_t port,
@@ -102,7 +103,8 @@ struct PlainTcpConfig : BaseCommConfig {
                  NodeMap _nodes,
                  int32_t _maxServerId,
                  NodeNum _selfId,
-                 UPDATE_CONNECTIVITY_FN _statusCallback = nullptr) :
+                 UPDATE_CONNECTIVITY_FN _statusCallback = nullptr,
+                 int32_t _listenThreads = 1) :
       BaseCommConfig(CommType::PlainTcp,
                      std::move(ip),
                      port,
@@ -110,7 +112,7 @@ struct PlainTcpConfig : BaseCommConfig {
                      std::move(_nodes),
                      _selfId,
                      _statusCallback),
-      maxServerId{_maxServerId} {
+      maxServerId{_maxServerId}, listenThreads{_listenThreads} {
   }
 };
 

@@ -175,6 +175,15 @@ void parse_params(int argc, char** argv) {
         } else if (p == "-commit") {
           rp.commitTimerMillisec = std::stoi(argv[i + 1]);
           i += 2;
+        } else if (p == "-threads") {
+          rp.listenThreads = std::stoi(argv[i + 1]);
+          i += 2;
+        } else if (p == "-commitdelay") {
+          rp.commitDelayMillisec = std::stoi(argv[i + 1]);
+          i += 2;
+        } else if (p == "-env") {
+          rp.env = argv[i + 1];
+          i += 2;
         } else {
           printf("Unknown parameter %s\n", p.c_str());
           exit(-1);
@@ -258,7 +267,7 @@ class SimpleAppState : public RequestsHandler {
 
       // We only support the WRITE operation in read-write mode.
       const uint64_t* pReqId = reinterpret_cast<const uint64_t*>(request);
-      test_assert(*pReqId == SET_VAL_REQ, "*preqId != " << SET_VAL_REQ);
+      //test_assert(*pReqId == SET_VAL_REQ, "*preqId != " << SET_VAL_REQ);
 
       // The value to write is the second eight bytes of the request.
       const uint64_t* pReqVal = (pReqId + 1);
@@ -330,12 +339,16 @@ int main(int argc, char **argv) {
   replicaConfig.concurrencyLevel = rp.concurrencyLevel;
   replicaConfig.maxBatchSize = rp.maxBatchSize;
   replicaConfig.commitTimerMillisec = rp.commitTimerMillisec;
+  replicaConfig.commitDelayMillisec = rp.commitDelayMillisec;
+  replicaConfig.env = rp.env;
 
 #ifdef USE_COMM_PLAIN_TCP
   PlainTcpConfig conf = testCommConfig.GetTCPConfig(true, rp.replicaId,
                                                     rp.numOfClients,
                                                     rp.numOfReplicas,
                                                     rp.configFileName);
+  conf.listenThreads = rp.listenThreads;
+  
 #elif USE_COMM_TLS_TCP
   TlsTcpConfig conf = testCommConfig.GetTlsTCPConfig(true, rp.replicaId,
                                                      rp.numOfClients,

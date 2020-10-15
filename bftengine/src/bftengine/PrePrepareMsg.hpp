@@ -10,8 +10,8 @@
 
 #include <stdint.h>
 
-#include "ArchipelagoTimeManager.hpp"
-#include "ArchipelagoStablePointMsg.hpp"
+#include "PompeTimeManager.hpp"
+#include "PompeStablePointMsg.hpp"
 #include "PrimitiveTypes.hpp"
 #include "assertUtils.hpp"
 #include "Digest.hpp"

@@ -11,7 +11,7 @@
 #include "MessageBase.hpp"
 #include "ReplicasInfo.hpp"
 #include "ClientMsgs.hpp"
-#include "ArchipelagoTimeManager.hpp"
+#include "PompeTimeManager.hpp"
 
 namespace bftEngine
 {
@@ -39,6 +39,8 @@ namespace bftEngine
 
 			ClientRequestMsg(ClientRequestMsg* msg);
 
+			void reset(NodeIdType sender, bool isReadOnly, uint64_t reqSeqNum, const char* request);
+
 			uint32_t maxRequestLength() const { return internalStorageSize() - sizeof(ClientRequestMsgHeader); }
 
 			uint16_t clientProxyId() const { return b()->idOfClientProxy; }
@@ -60,6 +62,8 @@ namespace bftEngine
 			void setAsReadyOnly();
 
 			void setCombinedTimestamp(CombinedTimeStampMsg* msg);
+
+			void setClientProxyId(uint16_t client) { b()->idOfClientProxy = client; }
 
 			uint64_t timeStamp() const;
 

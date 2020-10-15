@@ -270,12 +270,10 @@ namespace bftEngine
 				ClientRequestMsg *m = (ClientRequestMsg*)pMsg;
 				if (!m->isReadOnly()) {
 					CombinedTimeStampMsg t(m->clientProxyId(), (CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(m->requestBuf() + m->requestLength()));
-					if (t.timeStamp() > *stableTimeStamp) {
-						if (!t.checkTimeStamps(tverifier)) {
-							LOG_INFO_F(GL, "Verify Error!");
-						}
+					if (t.timeStamp() <= *stableTimeStamp || !t.checkTimeStamps(tverifier)) { //t.checkTimeStamps(verifier);
+						LOG_INFO_F(GL, "Verify Error!");
+						m->setClientProxyId(UINT16_MAX);
 					}
-					//t.checkTimeStamps(verifier);
 				}
 			}
             
@@ -621,19 +619,20 @@ namespace bftEngine
 			const NodeIdType clientId = m->clientProxyId();
 			const bool readOnly = m->isReadOnly();
 			const ReqId reqSeqNum = m->requestSeqNum();
+			const uint64_t timestamp = m->timeStamp();
 
-			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (clientId=%d reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d", 
-			    myReplicaId, clientId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), m->timeStamp(), localStablePoint, clientId);
+			LOG_DEBUG_F(GL, "Node %d received NewClientRequestMsg (reqSeqNum=%" PRIu64 ", readOnly=%d reqLength=%d totalSize=%d size=%d timestamp=%" PRIu64 " localStablePoint=%" PRIu64 ") from Node %d",
+			    myReplicaId, reqSeqNum, readOnly ? 1 : 0, (int)m->requestLength(), (int)m->totalSize(), (int)m->size(), timestamp, localStablePoint, m->senderId());
 
-			if (!clientsManager->isValidClient(clientId) || m->timeStamp() <= localStablePoint)
+			if (!clientsManager->isValidClient(clientId) || timestamp < localStablePoint)
 			{
 				uint64_t invalidSeqNum = reqSeqNum - 1;
 				ClientReplyMsg reply(myReplicaId, reqSeqNum, (char*)&invalidSeqNum, sizeof(uint64_t));
 				reply.setPrimaryId(currentPrimary());
-				send(&reply, clientId);
+				send(&reply, m->senderId());
 
-				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", clientId, reqSeqNum, m->timeStamp(), localStablePoint);   
-				onReportAboutInvalidMessage(m);
+				LOG_INFO_F(GL, "message clientId=%d reqSeqNum=%" PRIu64 " timestamp=%" PRIu64 " localStablePoint=%" PRIu64"", m->senderId(), reqSeqNum, timestamp, localStablePoint);
+				//onReportAboutInvalidMessage(m);
 				delete m;
 				return;
 			}
@@ -668,11 +667,11 @@ namespace bftEngine
 
 					if (isCurrentPrimary()) {
 						if (timeskew == 0) {
-							uint64_t dt = (uint64_t)(0);
-							if (getMonotonicTime() < m->timeStamp() + dt)
-								timeskew = m->timeStamp() + dt - getMonotonicTime();
+							uint64_t dt = commitDelay; //commitDuration
+							if (getMonotonicTime() <timestamp - dt)
+								timeskew = timestamp - dt - getMonotonicTime();
 							else
-								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - m->timeStamp() - dt);
+								timeskew = - static_cast<std::int64_t>(getMonotonicTime() - timestamp + dt);
 							LOG_INFO_F(GL, "CQDEBUG:TimeSkew:%" PRId64 "", timeskew);
 						}
 						
@@ -735,11 +734,14 @@ namespace bftEngine
 			PrePrepareMsg *pp = new PrePrepareMsg(myReplicaId, curView, primaryLastUsedSeqNum, firstPath, false);
 
 			ClientRequestMsg* nextRequest = requestsQueueOfPrimary.front();
-			while (nextRequest != nullptr && nextRequest->size() <= pp->remainingSizeForRequests())
+			ClientRequestMsg reqMsg(nextRequest->clientProxyId(), nextRequest->isReadOnly(), nextRequest->requestSeqNum(), DIGEST_SIZE, nextRequest->digest());
+			while (nextRequest != nullptr && reqMsg.size() <= pp->remainingSizeForRequests())
 			{
 				if (clientsManager->noPendingAndRequestCanBecomePending(nextRequest->clientProxyId(), nextRequest->requestSeqNum()))
 				{
-					pp->addRequest(nextRequest->body(), nextRequest->size());
+					reqMsg.reset(nextRequest->clientProxyId(), nextRequest->isReadOnly(), nextRequest->requestSeqNum(), nextRequest->digest());
+					pp->addRequest(reqMsg.body(), reqMsg.size());
+					//pp->addRequest(nextRequest->body(), nextRequest->size());
 					clientsManager->addPendingRequest(nextRequest->clientProxyId(), nextRequest->requestSeqNum());
 				}
 				delete nextRequest;
@@ -747,7 +749,7 @@ namespace bftEngine
 				nextRequest = (requestsQueueOfPrimary.size() > 0 ? requestsQueueOfPrimary.front() : nullptr);
 			}
 
-			pp->finishAddingRequests(false);
+			pp->finishAddingRequests(true);
 			return pp;
 		}
 
@@ -756,16 +758,21 @@ namespace bftEngine
 			TimeDeltaMirco delta = absDifference(getMonotonicTime() + timeskew, localStablePoint); // / commitDuration * commitDuration;
 			if (static_cast<std::uint64_t>(delta) < commitDuration || localStablePoint < localNextStablePoint) return;
 
-			localCommitMsgs.clear();
 			localNextStablePoint = localStablePoint + delta;
-            CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
+			CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
 			for (auto it = localCommitSet.begin(); it != localCommitSet.end(); it++) {
 				Time ts = it->second->timeStamp();
 				if (ts > localStablePoint && ts <= localNextStablePoint && m.remainSize() >= sizeof(CollectStablePointItem)) {
 					m.addRequest(it->second);
 				}
 			}
+			if (m.numberOfRequests() == 0) {
+				localNextStablePoint = localStablePoint;
+				return;
+			}
 
+			m.finishAddRequest();
+			localCommitMsgs.clear();
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas()) send(&m, x);
 
 			LOG_DEBUG_F(GL, "Sending CollectStablePointMsg (numReqs=%d prevStablePoint=%" PRId64 " nextStablePoint=%" PRId64 ")",
@@ -2623,8 +2630,8 @@ namespace bftEngine
 				executeReadWriteRequests();
 
 				if (isCurrentPrimary() && !requestsQueueOfPrimary.empty()) {
-					if (commitDuration > 0) tryToSendStablePoints();
-				    else tryToSendPrePrepareMsg();
+					if (commitDuration == 0) tryToSendPrePrepareMsg();
+					//else tryToSendStablePoints();
 				}
 			}
 
@@ -2715,8 +2722,8 @@ namespace bftEngine
 			if (currentViewIsActive() && !stateTransfer->isCollectingState()) // TODO(GG): TBD
 			{
 				if (currentPrimary() == myReplicaId) {
-					if (commitDuration > 0) tryToSendStablePoints();
-				    else tryToSendPrePrepareMsg();
+					if (commitDuration == 0) tryToSendPrePrepareMsg();
+					//else tryToSendStablePoints();
 				}
 			}
 		}
@@ -3249,6 +3256,7 @@ namespace bftEngine
                         metricsTimer_{ nullptr },
 			viewChangeTimerMilli{ 0 },
 			maxBatchSize{ config.maxBatchSize },
+			commitDelay{ static_cast<std::uint64_t>(config.commitDelayMillisec) * 1000 },
 			commitDuration{ static_cast<std::uint64_t>(config.commitTimerMillisec) * 1000 },
 			maxCommitDuration{ static_cast<std::uint64_t>(config.commitTimerMillisec) * 1000 },
 			localStablePoint{ 0 },
@@ -3372,6 +3380,13 @@ namespace bftEngine
 			checkpointsLog = new SequenceWithActiveWindow<kWorkWindowSize + checkpointWindowSize, checkpointWindowSize, SeqNum, CheckpointInfo, CheckpointInfo>(0, (InternalReplicaApi*)this);
 
 			// create controller . TODO(GG): do we want to pass the controller as a parameter ?
+			if (config.env == "local") {
+				defaultTimeToStartSlowPathMilli = 150;
+				minTimeToStartSlowPathMilli = 20;
+			} else {
+				defaultTimeToStartSlowPathMilli = 800;
+				minTimeToStartSlowPathMilli = 100;
+			}
                         controller = new ControllerWithSimpleHistory(cVal, fVal, myReplicaId, curView, primaryLastUsedSeqNum);
 
 			statusReportTimer = new Timer(timersScheduler, (uint16_t)statusReportTimerMilli, statusTimerHandlerFunc, (InternalReplicaApi*)this);
@@ -3516,6 +3531,7 @@ namespace bftEngine
 				bool newMsg = false;
 			    while (!newMsg)
 			    {
+				    //if (timeskew != 0) tryToSendStablePoints();
 				    newMsg = orderingMsgsStorage.pop(absMsg, externalMsg, timersResolution);
 			    }
 
@@ -3804,8 +3820,8 @@ namespace bftEngine
 			}	
 	
 			if (isCurrentPrimary() && requestsQueueOfPrimary.size() > 0) {
-				if (commitDuration > 0) tryToSendStablePoints();
-				else tryToSendPrePrepareMsg(true);
+				if (commitDuration == 0) tryToSendPrePrepareMsg(true);
+				//else tryToSendStablePoints();
 			}
 		}
 

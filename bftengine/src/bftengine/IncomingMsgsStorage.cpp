@@ -167,5 +167,161 @@ namespace bftEngine
 			}
 		}
 
+		bool MessageBaseCmp::operator() (MessageBase* a, MessageBase* b)
+		{
+			return a->type() < b->type();
+		}
+
+		PriorityIncomingMsgsStorage::PriorityIncomingMsgsStorage(uint16_t maxNumOfPendingExternalMsgs) :
+			maxNumberOfPendingExternalMsgs{ maxNumOfPendingExternalMsgs }
+		{
+			ptrProtectedQueueForExternalMessages = new std::priority_queue<MessageBase*, std::vector<MessageBase*>, MessageBaseCmp>();
+			ptrProtectedQueueForInternalMessages = new queue<InternalMessage*>();
+
+			lastOverflowWarning = MinTime;
+
+			ptrThreadLocalQueueForExternalMessages = new std::priority_queue<MessageBase*, std::vector<MessageBase*>, MessageBaseCmp>();
+			ptrThreadLocalQueueForInternalMessages = new queue<InternalMessage*>();
+		}
+
+		PriorityIncomingMsgsStorage::~PriorityIncomingMsgsStorage()
+		{
+			delete ptrProtectedQueueForExternalMessages;
+			delete ptrProtectedQueueForInternalMessages;
+			delete ptrThreadLocalQueueForExternalMessages;
+			delete ptrThreadLocalQueueForInternalMessages;
+		}
+
+		void PriorityIncomingMsgsStorage::pushExternalMsg(MessageBase* m) // can be called by any thread
+		{
+			std::unique_lock<std::mutex> mlock(lock);
+			{
+				if (ptrProtectedQueueForExternalMessages->size() >= maxNumberOfPendingExternalMsgs && m->type() == MsgCode::Request)
+				{
+					Time n = getMonotonicTime();
+					if (subtract(n, lastOverflowWarning) > ((TimeDeltaMirco)minTimeBetweenOverflowWarningsMilli * 1000))
+					{
+						LOG_WARN_F(GL, "More than %d pending messages in consensus queue -  may ignore some of the messages!",
+							(int)maxNumberOfPendingExternalMsgs);
+
+						lastOverflowWarning = n;
+					}
+
+					delete m; // ignore message
+				}
+				else
+				{
+					ptrProtectedQueueForExternalMessages->push(m);
+					condVar.notify_one();
+				}
+			}
+		}
+
+                void PriorityIncomingMsgsStorage::pushExternalOrderingMsg(MessageBase* m) // can be called by any thread
+		{
+			std::unique_lock<std::mutex> mlock(lock);
+			{
+				if (ptrProtectedQueueForExternalMessages->size() >= (maxNumberOfPendingExternalMsgs >> 1) && m->type() == MsgCode::ClientGetTimeStamp)
+				{
+					Time n = getMonotonicTime();
+					if (subtract(n, lastOverflowWarning) > ((TimeDeltaMirco)minTimeBetweenOverflowWarningsMilli * 1000))
+					{
+						LOG_WARN_F(GL, "More than %d pending messages in ordering queue -  may ignore some of the messages!",
+							(int)maxNumberOfPendingExternalMsgs);
+
+						lastOverflowWarning = n;
+					}
+
+					delete m; // ignore message
+				}
+				else
+				{
+					ptrProtectedQueueForExternalMessages->push(m);
+					condVar.notify_one();
+				}
+			}
+		}
+
+		void PriorityIncomingMsgsStorage::pushInternalMsg(InternalMessage* m) // can be called by any thread
+		{
+			std::unique_lock<std::mutex> mlock(lock);
+			{
+				ptrProtectedQueueForInternalMessages->push(m);
+				condVar.notify_one();
+			}
+		}
+
+		bool PriorityIncomingMsgsStorage::pop(void*& item, bool& external, std::chrono::milliseconds timeout) // should only be called by the main thread
+		{
+			if (popThreadLocal(item, external))
+				return true;
+
+			{
+				std::unique_lock<std::mutex> mlock(lock);
+
+				{
+					if (ptrProtectedQueueForExternalMessages->empty() && ptrProtectedQueueForInternalMessages->empty())
+						condVar.wait_for(mlock, timeout);
+
+
+					if (ptrProtectedQueueForExternalMessages->empty() && ptrProtectedQueueForInternalMessages->empty()) // no new message
+						return false;
+
+					// swap queues
+
+					std::priority_queue<MessageBase*, std::vector<MessageBase*>, MessageBaseCmp>* t1 = ptrThreadLocalQueueForExternalMessages;
+					ptrThreadLocalQueueForExternalMessages = ptrProtectedQueueForExternalMessages;
+					ptrProtectedQueueForExternalMessages = t1;
+
+					std::queue<InternalMessage*>* t2 = ptrThreadLocalQueueForInternalMessages;
+					ptrThreadLocalQueueForInternalMessages = ptrProtectedQueueForInternalMessages;
+					ptrProtectedQueueForInternalMessages = t2;
+				}
+			}
+
+			return popThreadLocal(item, external);
+		}
+
+
+
+		bool PriorityIncomingMsgsStorage::empty() // should only be called by the main thread. 
+		{
+			if (!ptrThreadLocalQueueForExternalMessages->empty() || !ptrThreadLocalQueueForInternalMessages->empty())
+				return false;
+
+			{
+				std::unique_lock<std::mutex> mlock(lock);
+				{
+					return (ptrProtectedQueueForExternalMessages->empty() && ptrProtectedQueueForInternalMessages->empty());
+				}
+			}
+		}
+
+		bool PriorityIncomingMsgsStorage::popThreadLocal(void*& item, bool& external)
+		{
+			if (!ptrThreadLocalQueueForInternalMessages->empty())
+			{
+
+				InternalMessage* iMsg = ptrThreadLocalQueueForInternalMessages->front();
+				ptrThreadLocalQueueForInternalMessages->pop();
+				item = (void*)iMsg;
+				external = false;
+				return true;
+			}
+			else if (!ptrThreadLocalQueueForExternalMessages->empty())
+			{
+				MessageBase* eMsg = ptrThreadLocalQueueForExternalMessages->top();
+				ptrThreadLocalQueueForExternalMessages->pop();
+				item = (void*)eMsg;
+				external = true;
+				return true;
+			}
+			else
+			{
+				return false;
+			}
+		}
+
+
 	}
 }

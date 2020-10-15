@@ -22,21 +22,21 @@
 #include "MsgsCertificate.hpp"
 #include "DynamicUpperLimitWithSimpleFilter2.hpp"
 #include "Logger.hpp"
-#include "ArchipelagoTimeManager.hpp"
+#include "PompeTimeManager.hpp"
 
 namespace bftEngine
 {
     namespace impl
     {
-        class ArchipelagoSimpleClientImp : public SimpleClient, public IReceiver
+        class PompeSimpleClientImp : public SimpleClient, public IReceiver
         {
         public:
-            ArchipelagoSimpleClientImp(ICommunication* communication, uint16_t clientId,
+            PompeSimpleClientImp(ICommunication* communication, uint16_t clientId,
                 uint16_t fVal, uint16_t cVal, SimpleClientParams &p);
 
             // SimpleClient methods
 
-            virtual ~ArchipelagoSimpleClientImp() override;
+            virtual ~PompeSimpleClientImp() override;
 
             virtual int sendRequest(bool isReadOnly, const char* request, uint32_t lengthOfRequest, uint64_t reqSeqNum, uint64_t timeoutMilli, uint32_t lengthOfReplyBuffer, char* replyBuffer, uint32_t& actualReplyLength) override;
 
@@ -78,7 +78,7 @@ namespace bftEngine
             const std::set<uint16_t> _replicas;
             ICommunication* const _communication;
 
-            MsgsCertificate<ClientReplyMsg, false, false, true, ArchipelagoSimpleClientImp> replysCertificate;
+            MsgsCertificate<ClientReplyMsg, false, false, true, PompeSimpleClientImp> replysCertificate;
 
             std::mutex _lock; // protects _msgQueue and pendingRequest
             std::condition_variable _condVar;
@@ -117,7 +117,7 @@ namespace bftEngine
             void onMessage(ClientSignedTimeStampMsg* msg);
         };
 
-        void ArchipelagoSimpleClientImp::onMessageFromReplica(MessageBase* msg)
+        void PompeSimpleClientImp::onMessageFromReplica(MessageBase* msg)
         {
             if (msg->type() == MsgCode::Reply) {
                 ClientReplyMsg* replyMsg = nullptr;
@@ -140,7 +140,7 @@ namespace bftEngine
             }
         }
 
-        void ArchipelagoSimpleClientImp::onMessage(ClientReplyMsg* msg)
+        void PompeSimpleClientImp::onMessage(ClientReplyMsg* msg)
         {
              LOG_DEBUG_F(GL, "Client %d received ClientReplyMsg with seqNum=%"
             PRIu64
@@ -173,7 +173,7 @@ namespace bftEngine
             }
         }
 
-        void ArchipelagoSimpleClientImp::onMessage(ClientSignedTimeStampMsg* msg)
+        void PompeSimpleClientImp::onMessage(ClientSignedTimeStampMsg* msg)
         {
             LOG_DEBUG_F(GL, "Client %d received SignedTimeStamp with sender=%d size=%d time=%" PRIu64 "",
                 _clientId, msg->senderId(), (int)msg->size(), msg->timeStamp());
@@ -196,7 +196,7 @@ namespace bftEngine
             }
         }
         
-        void ArchipelagoSimpleClientImp::onRetransmission()
+        void PompeSimpleClientImp::onRetransmission()
         {
             sendPendingRequest();
         }
@@ -212,7 +212,7 @@ namespace bftEngine
             return retVal;
         }
 
-        ArchipelagoSimpleClientImp::ArchipelagoSimpleClientImp(ICommunication* communication,uint16_t clientId, uint16_t fVal, uint16_t cVal,SimpleClientParams &p) :
+        PompeSimpleClientImp::PompeSimpleClientImp(ICommunication* communication,uint16_t clientId, uint16_t fVal, uint16_t cVal,SimpleClientParams &p) :
             _clientId{ clientId },
             _fVal{ fVal },
             _cVal{ cVal },
@@ -243,7 +243,7 @@ namespace bftEngine
                 _communication->setReceiver(_clientId, this);
         }
 
-        ArchipelagoSimpleClientImp::~ArchipelagoSimpleClientImp() 
+        PompeSimpleClientImp::~PompeSimpleClientImp() 
         {
             Assert(replysCertificate.isEmpty());
             Assert(_msgQueue.empty());
@@ -256,7 +256,7 @@ namespace bftEngine
             timestampsFromReplicas.clear();
         }
 
-        int ArchipelagoSimpleClientImp::sendRequest(bool isReadOnly, const char* request, uint32_t lengthOfRequest, uint64_t reqSeqNum, uint64_t timeoutMilli, uint32_t lengthOfReplyBuffer, char* replyBuffer, uint32_t& actualReplyLength)
+        int PompeSimpleClientImp::sendRequest(bool isReadOnly, const char* request, uint32_t lengthOfRequest, uint64_t reqSeqNum, uint64_t timeoutMilli, uint32_t lengthOfReplyBuffer, char* replyBuffer, uint32_t& actualReplyLength)
         {            
             // TODO(GG): check params ...
             LOG_DEBUG_F(GL, "Client %d - sends request %" PRIu64 " (isRO=%d, "
@@ -382,13 +382,13 @@ namespace bftEngine
             return 0;
         }
 
-        int ArchipelagoSimpleClientImp::sendRequestToResetSeqNum()
+        int PompeSimpleClientImp::sendRequestToResetSeqNum()
         {
             Assert(false); // not implemented yet
             return 0;
         }
 
-        void ArchipelagoSimpleClientImp::reset()
+        void PompeSimpleClientImp::reset()
         {
             replysCertificate.resetAndFree();
             for (auto&& m : timestampsFromReplicas) delete m.second;
@@ -414,13 +414,13 @@ namespace bftEngine
             numberOfTransmissions = 0;
         }
 
-        int ArchipelagoSimpleClientImp::sendRequestToReadLatestSeqNum(uint64_t timeoutMilli, uint64_t& outLatestReqSeqNum)
+        int PompeSimpleClientImp::sendRequestToReadLatestSeqNum(uint64_t timeoutMilli, uint64_t& outLatestReqSeqNum)
         {
             Assert(false); // not implemented yet
             return 0;
         }
 
-        void ArchipelagoSimpleClientImp::onNewMessage(const NodeNum sourceNode,
+        void PompeSimpleClientImp::onNewMessage(const NodeNum sourceNode,
                                            const char* const message, const size_t messageLength)
         {
             // check source
@@ -450,11 +450,11 @@ namespace bftEngine
             }
         }
 
-        void ArchipelagoSimpleClientImp::onConnectionStatusChanged(const NodeNum node, const ConnectionStatus newStatus)
+        void PompeSimpleClientImp::onConnectionStatusChanged(const NodeNum node, const ConnectionStatus newStatus)
         {
         }
 
-        void ArchipelagoSimpleClientImp::sendPendingRequest()
+        void PompeSimpleClientImp::sendPendingRequest()
         {
             Assert(pendingRequest != nullptr)
 
@@ -534,13 +534,13 @@ namespace bftEngine
 
 namespace bftEngine
 {
-    SimpleClient* SimpleClient::createArchipelagoSimpleClient(
+    SimpleClient* SimpleClient::createPompeSimpleClient(
             ICommunication* communication,
             uint16_t clientId,
             uint16_t fVal,
             uint16_t cVal,
             SimpleClientParams p)
     {
-        return new impl::ArchipelagoSimpleClientImp(communication, clientId, fVal, cVal, p);
+        return new impl::PompeSimpleClientImp(communication, clientId, fVal, cVal, p);
     }
 }

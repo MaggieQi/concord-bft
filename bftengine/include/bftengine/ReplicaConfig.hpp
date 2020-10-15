@@ -42,7 +42,11 @@ namespace bftEngine
 		// 1 <= concurrencyLevel <= 30
 		uint16_t concurrencyLevel;
 
+		std::string env;
+
 		uint16_t maxBatchSize;
+
+		uint16_t commitDelayMillisec;
 
 		uint16_t commitTimerMillisec;
 

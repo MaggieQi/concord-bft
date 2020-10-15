@@ -75,6 +75,16 @@ namespace bftEngine
 			memcpy(body(), msg->body(), size());
 		}
 
+		void ClientRequestMsg::reset(NodeIdType sender, bool isReadOnly, uint64_t reqSeqNum, const char* request)
+		{
+			sender_ = sender;
+			b()->idOfClientProxy = sender;
+			b()->flags = 0;
+			if (isReadOnly) b()->flags |= 0x1;
+			b()->reqSeqNum = reqSeqNum;
+			memcpy(body() + sizeof(ClientRequestMsgHeader), request, b()->requestLength);
+		}
+
 		void ClientRequestMsg::set(ReqId reqSeqNum, uint32_t requestLength, bool isReadOnly)
 		{
 			Assert(requestLength > 0);
@@ -110,14 +120,18 @@ namespace bftEngine
 			}
 		}
 
-        uint64_t ClientRequestMsg::timeStamp() const
+		uint64_t ClientRequestMsg::timeStamp() const
 		{
-			return ((CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(body() + sizeof(ClientRequestMsgHeader) + b()->requestLength))->timeStamp;
+			if (b()->totalSize > b()->requestLength)
+			    return ((CombinedTimeStampMsg::CombinedTimeStampMsgHeader*)(body() + sizeof(ClientRequestMsgHeader) + b()->requestLength))->timeStamp;
+			return 0;
 		}
 
 		char* ClientRequestMsg::digest() const
 		{
-			return body() + sizeof(ClientRequestMsgHeader) + b()->requestLength + sizeof(CombinedTimeStampMsg::CombinedTimeStampMsgHeader);
+			if (b()->totalSize > b()->requestLength)
+			    return body() + sizeof(ClientRequestMsgHeader) + b()->requestLength + sizeof(CombinedTimeStampMsg::CombinedTimeStampMsgHeader);
+			return nullptr;
 		}
 
 		bool ClientRequestMsg::ToActualMsgType(const ReplicasInfo& repInfo, MessageBase* inMsg, ClientRequestMsg*& outMsg) {
