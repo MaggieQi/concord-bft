@@ -151,7 +151,7 @@ def run_experiment_server(hostid, client, config_object, threads):
     maxBatchSize = int(config_object["replica_batchsize"])
     threads = int(config_object["threads"])
     commitDuration = int(config_object["commit_duration"])
-    commitDelay = 10 if config_object["env"] == "local" else 400
+    commitDelay = 10 if config_object["env"] == "local" else 500
     if config_object["system"] == "concord":
         threads += 100
         commitDuration = 0
@@ -177,21 +177,21 @@ def run_experiment_client(hostid, client, config_object, host):
     if config_object["system"] == "concord":
         if config_object["env"] == "geo":
             minrt = 500
-            maxrt = 20000
+            maxrt = 30000
             irt = 1500
         else:
             minrt = 50
-            maxrt = 2000
+            maxrt = 3000
             irt = 150
     else:
         if config_object["env"] == "geo":
-            minrt = 20000
-            maxrt = 20000
-            irt = 20000
+            minrt = 30000
+            maxrt = 30000
+            irt = 30000
         else:
-            minrt = 2000
-            maxrt = 2000
-            irt = 2000
+            minrt = 3000
+            maxrt = 3000
+            irt = 3000
 
     cmd = '''cd %s;
 export LD_LIBRARY_PATH=$LD_LIBRARY_PATH:/usr/local/lib && export CPLUS_INCLUDE_PATH=$CPLUS_INCLUDE_PATH:/usr/local/include;

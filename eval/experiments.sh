@@ -4,8 +4,10 @@ EXPDIR=$FOLDER/$protocol/$1
 beta=$3
 commit_duration=$4
 env=$5
+dec_beta=$6
 numclientservers=`grep $env\_client_list generate_config.py | head -n 1 | awk '{n = split($3,s,",");print n;}'`
-number_operations=$((200*$beta))
+op_factor=20
+number_operations=$(($op_factor * $beta))
 dec_beta=$6
 threads=8
 echo "Set env:$env commit duration:$commit_duration batch size: $beta number of operations: $number_operations number of clients: $numclientservers"
@@ -79,12 +81,12 @@ elif [ "$1" == "server_inc" ]; then
     echo "RUN $protocol server increase experiment"
     for i in 1 3 5 10 20 33; do
         numservers=$(($i*3+1))
-	if [ $dec_beta -eq 1]; then
+	if [ "$dec_beta" == "1" ]; then
 	    beta=$(($beta*4/$numservers))
-            number_operations=$((200*$beta))
+            number_operations=$(($op_factor * $beta))
             echo "Set batch size: $beta number of operations: $number_operations"
 	fi
-        for ((j=$istart;j<=$iend;j=j*2)); do
+        for j in 64 99 198 396; do
             if [ "$protocol" == "pompe" ]; then
                 python3 generate_config.py --file_prefix=config/test --protocol=$protocol --env=$env --threads=$threads --client_batchsize=$beta --number_operations=$number_operations --commit_duration=$commit_duration $numservers $numservers $numclientservers $j
             else
@@ -101,13 +103,13 @@ elif [ "$1" == "server_inc_result" ]; then
     rm -rf $EXPDIR/*_beta_$beta\_*
     for i in 1 3 5 10 20 33; do
         numservers=$(($i*3+1))
-	if [ $dec_beta -eq 1 ]; then
+	if [ "$dec_beta" == "1" ]; then
 	    beta=$(($beta*4/$numservers))
 	fi
         best=''
         best_throughput=0
         best_latency=10000000.0
-        for ((j=$istart;j<=$iend;j++)); do
+        for ((j=2;j<=396;j++)); do
 	    dest=$FOLDER/$protocol/$7/server_inc_servers_$numservers\_clients_$j\_beta_$beta\_commit_$commit_duration.json
 	    if [ ! -f "$dest" ]; then
                 continue

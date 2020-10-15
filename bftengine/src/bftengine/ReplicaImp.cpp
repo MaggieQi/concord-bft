@@ -749,7 +749,7 @@ namespace bftEngine
 				nextRequest = (requestsQueueOfPrimary.size() > 0 ? requestsQueueOfPrimary.front() : nullptr);
 			}
 
-			pp->finishAddingRequests(false);
+			pp->finishAddingRequests(true);
 			return pp;
 		}
 
@@ -759,7 +759,7 @@ namespace bftEngine
 			if (static_cast<std::uint64_t>(delta) < commitDuration || localStablePoint < localNextStablePoint) return;
 
 			localNextStablePoint = localStablePoint + delta;
-            CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
+			CollectStablePointMsg m(myReplicaId, localStablePoint, localNextStablePoint);
 			for (auto it = localCommitSet.begin(); it != localCommitSet.end(); it++) {
 				Time ts = it->second->timeStamp();
 				if (ts > localStablePoint && ts <= localNextStablePoint && m.remainSize() >= sizeof(CollectStablePointItem)) {
@@ -771,6 +771,7 @@ namespace bftEngine
 				return;
 			}
 
+			m.finishAddRequest();
 			localCommitMsgs.clear();
 			for (ReplicaId x : repsInfo->idsOfPeerReplicas()) send(&m, x);
 

@@ -153,7 +153,7 @@ namespace bftEngine
 			Assert(b()->digestOfRequests.isZero());
 
 			// check requests (for debug - consider to remove)
-			Assert(checkRequests());
+			//Assert(checkRequests());
 
 			// mark as ready
 			b()->flags |= 0x2;
